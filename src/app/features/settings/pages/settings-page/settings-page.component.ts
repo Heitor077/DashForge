@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+﻿import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
@@ -79,12 +79,12 @@ export class SettingsPageComponent {
     {
       id: 'new-tab',
       title: 'new-tab',
-      description: 'Abre cada acceso en una pestana nueva.'
+      description: 'Abre cada acceso en una pestaña nueva.'
     },
     {
       id: 'same-tab',
       title: 'same-tab',
-      description: 'Reutiliza la pestana actual para abrir.'
+      description: 'Reutiliza la pestaña actual para abrir.'
     },
     {
       id: 'system',
@@ -216,7 +216,7 @@ export class SettingsPageComponent {
     }
 
     if (!file.type.startsWith('image/')) {
-      this.notificationService.error('Selecciona un archivo de imagen valido.');
+      this.notificationService.error('Selecciona un archivo de imagen válido.');
       input.value = '';
       return;
     }
@@ -336,7 +336,7 @@ export class SettingsPageComponent {
     link.click();
     URL.revokeObjectURL(url);
 
-    this.notificationService.success('Configuracion exportada correctamente.');
+    this.notificationService.success('Configuración exportada correctamente.');
   }
 
   downloadImportExample(): void {
@@ -391,12 +391,12 @@ export class SettingsPageComponent {
       const content = await file.text();
       const result = this.launcherConfigService.importFromJson(content);
       if (result.success) {
-        this.notificationService.success('Configuracion importada y aplicada correctamente.');
+        this.notificationService.success('Configuración importada y aplicada correctamente.');
       } else {
         this.notificationService.error(this.toFriendlyImportError(result.error));
       }
     } catch {
-      this.notificationService.error('No se pudo leer el archivo. Verifica que sea un JSON valido exportado desde DashForge.');
+      this.notificationService.error('No se pudo leer el archivo. Verifica que sea un JSON válido exportado desde DashForge.');
     } finally {
       input.value = '';
       this.isImporting.set(false);
@@ -406,11 +406,11 @@ export class SettingsPageComponent {
   private toFriendlyImportError(rawError: string | undefined): string {
     const error = (rawError ?? '').toLowerCase();
     if (!error) {
-      return 'No se pudo importar la configuracion. Revisa que el archivo sea un backup valido de DashForge.';
+      return 'No se pudo importar la configuración. Revisa que el archivo sea un backup válido de DashForge.';
     }
 
     if (error.includes('json')) {
-      return 'El archivo no es un JSON valido. Exporta un backup desde DashForge y vuelve a intentarlo.';
+      return 'El archivo no es un JSON válido. Exporta un backup desde DashForge y vuelve a intentarlo.';
     }
 
     if (error.includes('compatible') || error.includes('app')) {
@@ -418,14 +418,14 @@ export class SettingsPageComponent {
     }
 
     if (error.includes('settings') || error.includes('visualstate') || error.includes('custompresets')) {
-      return 'El backup esta incompleto o dañado en la seccion de configuracion visual.';
+      return 'El backup está incompleto o dañado en la sección de configuración visual.';
     }
 
-    if (error.includes('shortcuts') || error.includes('categorias')) {
-      return 'El backup tiene accesos o categorias invalidas. Usa un archivo exportado desde DashForge.';
+    if (error.includes('shortcuts') || error.includes('categorías')) {
+      return 'El backup tiene accesos o categorías inválidas. Usa un archivo exportado desde DashForge.';
     }
 
-    return rawError ?? 'No se pudo importar la configuracion. Revisa que el archivo sea un backup valido.';
+    return rawError ?? 'No se pudo importar la configuración. Revisa que el archivo sea un backup válido.';
   }
 
   private readFileAsDataUrl(file: File): Promise<string> {
@@ -444,3 +444,4 @@ export class SettingsPageComponent {
     });
   }
 }
+

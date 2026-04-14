@@ -1,7 +1,7 @@
-<section class="dashboard" [class.dashboard--focus]="isFocusMode()">
+﻿<section class="dashboard" [class.dashboard--focus]="isFocusMode()">
   <header class="dashboard__header">
     <div>
-      <p class="dashboard__eyebrow">Launcher</p>
+      <p class="dashboard__eyebrow">WORKSPACE</p>
       <h1>Accesos</h1>
     </div>
 
@@ -18,7 +18,7 @@
       <button type="button" class="theme-button theme-button--primary" (click)="openCreateShortcutModal()">
         Nuevo acceso
       </button>
-      <a routerLink="/settings" class="theme-button dashboard__settings-link">Configuracion</a>
+      <a routerLink="/settings" class="theme-button dashboard__settings-link">Configuración</a>
     </div>
   </header>
 
@@ -29,15 +29,249 @@
         type="search"
         class="launcher-search__input"
         [value]="searchQuery()"
-        placeholder="Buscar acceso, tipo, categoria o URL... (Ctrl/Cmd + K)"
+        placeholder="Buscar acceso, tipo, categoría o URL... (Ctrl/Cmd + K)"
         (input)="setSearchQuery($any($event.target).value)"
       />
     </div>
 
     <div class="dashboard__intro">
-      <h2>Launcher</h2>
-      <p>Pulsa cualquier tarjeta para abrir. Edicion y borrado en opciones al pasar el cursor.</p>
+      <h2>Launcher · {{ activeProject().name }}</h2>
+      <p>Pulsa cualquier tarjeta para abrir. Edición y borrado en opciones al pasar el cursor.</p>
     </div>
+
+    <section class="project-selector" aria-label="Selector de proyecto">
+      <span class="project-selector__label">Proyecto activo</span>
+      <div class="project-dropdown" data-project-dropdown>
+        <button
+          type="button"
+          class="project-dropdown__trigger"
+          [class.project-dropdown__trigger--open]="isProjectDropdownOpen()"
+          [attr.aria-expanded]="isProjectDropdownOpen()"
+          aria-haspopup="listbox"
+          (click)="toggleProjectDropdown()"
+        >
+          <span class="project-dropdown__value">{{ activeProject().name }}</span>
+          <span class="project-dropdown__caret" aria-hidden="true">▾</span>
+        </button>
+
+        @if (isProjectDropdownOpen()) {
+          <div class="project-dropdown__menu" role="listbox" aria-label="Lista de proyectos">
+            @for (project of projects(); track project.id) {
+              <button
+                type="button"
+                class="project-dropdown__option"
+                [class.project-dropdown__option--active]="project.id === activeProjectId()"
+                [attr.aria-selected]="project.id === activeProjectId()"
+                (click)="selectProjectFromDropdown(project.id)"
+              >
+                {{ project.name }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="project-selector__actions">
+        <button type="button" class="theme-button" (click)="createProject()">Nuevo proyecto</button>
+        <button type="button" class="theme-button" (click)="renameActiveProject()">Renombrar</button>
+        <button type="button" class="theme-button" [disabled]="!canDeleteProject()" (click)="deleteActiveProject()">
+          Borrar
+        </button>
+      </div>
+    </section>
+
+    <section class="project-launch" aria-label="Acciones de apertura de proyecto">
+      <div class="project-dropdown" data-project-launch-dropdown>
+        <button
+          type="button"
+          class="project-dropdown__trigger"
+          [class.project-dropdown__trigger--open]="isProjectLaunchDropdownOpen()"
+          [attr.aria-expanded]="isProjectLaunchDropdownOpen()"
+          aria-haspopup="menu"
+          (click)="toggleProjectLaunchDropdown()"
+        >
+          <span class="project-dropdown__value">Abrir proyecto</span>
+          <span class="project-dropdown__caret" aria-hidden="true">▾</span>
+        </button>
+
+        @if (isProjectLaunchDropdownOpen()) {
+          <div class="project-dropdown__menu" role="menu" aria-label="Opciones de abrir proyecto">
+            <button
+              type="button"
+              class="project-dropdown__option"
+              [disabled]="isProjectLaunchRunning()"
+              (click)="openProjectComplete()"
+            >
+              {{ isProjectLaunchRunning() ? 'Abriendo proyecto...' : 'Abrir proyecto completo' }}
+            </button>
+            <button type="button" class="project-dropdown__option" (click)="enterProjectLaunchConfigMode()">
+              Seleccionar accesos para abrir proyecto
+            </button>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="theme-button" (click)="toggleMultiSelectMode()">
+        {{ isMultiSelectMode() ? 'Salir modo selección' : 'Modo selección' }}
+      </button>
+
+      <span class="selection-toolbar__count">Seleccionados: {{ selectedShortcutsCount() }}</span>
+      <button
+        type="button"
+        class="theme-button theme-button--primary"
+        [disabled]="!canOpenBulkCopyAction()"
+        (click)="openBulkCopyPanel()"
+      >
+        Copiar selecciónados a proyecto...
+      </button>
+    </section>
+
+    @if (isProjectLaunchConfigMode()) {
+      <section class="copy-inline-panel" aria-label="Seleccionar accesos para abrir proyecto">
+        <p class="copy-inline-panel__title">Selecciona accesos para "Abrir proyecto"</p>
+        <p class="copy-inline-panel__hint">
+          Marcados: {{ projectLaunchSelectedCount() }}. Pulsa tarjetas para marcar o desmarcar.
+        </p>
+        @if (projectLaunchConfigError()) {
+          <p class="copy-inline-panel__error">{{ projectLaunchConfigError() }}</p>
+        }
+        <div class="copy-inline-panel__actions">
+          <button
+            type="button"
+            class="theme-button theme-button--primary"
+            [disabled]="isProjectLaunchRunning()"
+            (click)="openSelectedProjectLaunchDraft()"
+          >
+            {{ isProjectLaunchRunning() ? 'Abriendo selecciónados...' : 'Abrir selecciónados' }}
+          </button>
+          <button
+            type="button"
+            class="theme-button"
+            [disabled]="isProjectLaunchRunning()"
+            (click)="saveProjectLaunchConfig()"
+          >
+            Guardar configuración
+          </button>
+          <button
+            type="button"
+            class="theme-button"
+            [disabled]="isProjectLaunchRunning()"
+            (click)="cancelProjectLaunchConfigMode()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </section>
+    }
+
+    @if (projectEditorMode() !== 'idle') {
+      <form class="project-inline-form" (submit)="saveProjectEditor($event)">
+        <label class="project-inline-form__label" for="projectNameInput">
+          {{ projectEditorMode() === 'rename' ? 'Renombrar proyecto' : 'Nuevo proyecto' }}
+        </label>
+        <input
+          id="projectNameInput"
+          type="text"
+          class="project-inline-form__input"
+          [value]="projectNameInput()"
+          placeholder="Nombre del proyecto"
+          (input)="setProjectNameInput($any($event.target).value)"
+        />
+        @if (projectNameError()) {
+          <p class="project-inline-form__error">{{ projectNameError() }}</p>
+        }
+        <div class="project-inline-form__actions">
+          <button type="submit" class="theme-button theme-button--primary">Guardar</button>
+          <button type="button" class="theme-button" (click)="cancelProjectEditor()">Cancelar</button>
+        </div>
+      </form>
+    }
+
+    @if (isDeleteProjectConfirmOpen()) {
+      <section class="project-inline-confirm" aria-label="Confirmar borrado de proyecto">
+        <p>¿Borrar el proyecto "{{ activeProject().name }}"?</p>
+        <div class="project-inline-confirm__actions">
+          <button type="button" class="theme-button theme-button--primary" (click)="confirmDeleteActiveProject()">
+            Sí, borrar
+          </button>
+          <button type="button" class="theme-button" (click)="cancelDeleteProject()">Cancelar</button>
+        </div>
+      </section>
+    }
+
+    @if (shortcutToCopy()) {
+      <section class="copy-inline-panel" aria-label="Copiar acceso a otro proyecto">
+        <p class="copy-inline-panel__title">Copiar acceso: "{{ shortcutToCopy()?.name }}"</p>
+        <label class="copy-inline-panel__label" for="copyDestinationProject">Proyecto destino</label>
+        <select
+          id="copyDestinationProject"
+          class="copy-inline-panel__select"
+          [value]="copyTargetProjectId()"
+          (change)="setCopyTargetProjectId($any($event.target).value)"
+        >
+          @for (project of copyDestinationProjects(); track project.id) {
+            <option [value]="project.id">{{ project.name }}</option>
+          }
+        </select>
+        @if (copyShortcutError()) {
+          <p class="copy-inline-panel__error">{{ copyShortcutError() }}</p>
+        }
+        <div class="copy-inline-panel__actions">
+          <button type="button" class="theme-button theme-button--primary" (click)="confirmCopyShortcut()">
+            Copiar
+          </button>
+          <button type="button" class="theme-button" (click)="cancelCopyShortcutPanel()">Cancelar</button>
+        </div>
+      </section>
+    }
+
+    @if (isBulkCopyPanelOpen()) {
+      <section class="copy-inline-panel" aria-label="Copiar accesos selecciónados a otro proyecto">
+        <p class="copy-inline-panel__title">Copiar {{ selectedShortcutsCount() }} acceso(s) selecciónados</p>
+        <label class="copy-inline-panel__label" for="bulkCopyDestinationProject">Proyecto destino</label>
+
+        <div class="project-dropdown" data-bulk-copy-dropdown>
+          <button
+            id="bulkCopyDestinationProject"
+            type="button"
+            class="project-dropdown__trigger"
+            [class.project-dropdown__trigger--open]="isBulkCopyDropdownOpen()"
+            [attr.aria-expanded]="isBulkCopyDropdownOpen()"
+            aria-haspopup="listbox"
+            (click)="toggleBulkCopyDropdown()"
+          >
+            <span>{{ getBulkCopyDestinationName() }}</span>
+            <span class="project-dropdown__caret" aria-hidden="true">▾</span>
+          </button>
+
+          @if (isBulkCopyDropdownOpen()) {
+            <div class="project-dropdown__menu" role="listbox" aria-label="Proyectos destino para copia masiva">
+              @for (project of copyDestinationProjects(); track project.id) {
+                <button
+                  type="button"
+                  class="project-dropdown__option"
+                  [class.project-dropdown__option--active]="project.id === bulkCopyTargetProjectId()"
+                  [attr.aria-selected]="project.id === bulkCopyTargetProjectId()"
+                  (click)="selectBulkCopyDestination(project.id)"
+                >
+                  {{ project.name }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        @if (bulkCopyError()) {
+          <p class="copy-inline-panel__error">{{ bulkCopyError() }}</p>
+        }
+        <div class="copy-inline-panel__actions">
+          <button type="button" class="theme-button theme-button--primary" (click)="confirmBulkCopy()">
+            Copiar selecciónados
+          </button>
+          <button type="button" class="theme-button" (click)="cancelBulkCopyPanel()">Cancelar</button>
+        </div>
+      </section>
+    }
 
     @if (actionFeedback().type !== 'idle') {
       <p
@@ -49,7 +283,7 @@
       </p>
     }
 
-    <nav class="category-tabs" aria-label="Filtros de categorias">
+    <nav class="category-tabs" aria-label="Filtros de categorías">
       @for (category of categoryFilters(); track category.id) {
         <button
           type="button"
@@ -66,7 +300,7 @@
       <section class="dashboard__favorites">
         <header class="dashboard__favorites-header">
           <h3>Favoritos</h3>
-          <p>Accesos destacados para uso rapido</p>
+          <p>Accesos destacados para uso rápido</p>
         </header>
 
         <div class="dashboard__favorites-grid">
@@ -78,10 +312,15 @@
                 [showLabels]="showShortcutLabels()"
                 [searchTerm]="searchQuery()"
                 [isKeyboardSelected]="shortcut.id === selectedShortcutId()"
+                [canCopyToProject]="canCopyShortcutToAnotherProject()"
+                [isSelectionMode]="isMultiSelectMode() || isProjectLaunchConfigMode()"
+                [isSelected]="isShortcutSelected(shortcut.id)"
                 (launch)="launchShortcut($event)"
                 (edit)="openEditShortcutModal($event)"
                 (remove)="deleteShortcut($event)"
                 (toggleFavorite)="toggleFavorite($event)"
+                (copyToProject)="openCopyShortcutPanel($event)"
+                (toggleSelection)="toggleShortcutSelection($event)"
               />
             </div>
           }
@@ -94,21 +333,45 @@
       [class.dashboard__grid--compact]="compactMode()"
       [style.--dashboard-columns-template]="dashboardColumnsTemplate()"
       cdkDropList
+      cdkDropListOrientation="mixed"
       [cdkDropListData]="regularShortcuts()"
       (cdkDropListDropped)="onShortcutDrop($event)"
     >
       @for (shortcut of regularShortcuts(); track shortcut.id) {
-        <div class="dashboard__grid-item" cdkDrag>
+        <div class="dashboard__grid-item" cdkDrag draggable="false">
+          <ng-template cdkDragPreview>
+            <article class="shortcut-drag-preview" aria-hidden="true">
+              <div class="shortcut-drag-preview__icon" [style.background-color]="shortcut.color || ''">
+                {{ (shortcut.icon || shortcut.name.slice(0, 1) || 'S').slice(0, 1).toUpperCase() }}
+              </div>
+              <div class="shortcut-drag-preview__body">
+                <p class="shortcut-drag-preview__title">{{ shortcut.name }}</p>
+                <p class="shortcut-drag-preview__meta">
+                  {{ categoryLabels()[shortcut.categoryId || ''] || 'General' }} · {{ shortcut.type }}
+                </p>
+              </div>
+            </article>
+          </ng-template>
+
+          <ng-template cdkDragPlaceholder>
+            <div class="shortcut-drag-placeholder"></div>
+          </ng-template>
+
           <app-shortcut-card
             [shortcut]="shortcut"
             [categoryLabel]="categoryLabels()[shortcut.categoryId || ''] || 'General'"
             [showLabels]="showShortcutLabels()"
             [searchTerm]="searchQuery()"
             [isKeyboardSelected]="shortcut.id === selectedShortcutId()"
+            [canCopyToProject]="canCopyShortcutToAnotherProject()"
+            [isSelectionMode]="isMultiSelectMode() || isProjectLaunchConfigMode()"
+            [isSelected]="isShortcutSelected(shortcut.id)"
             (launch)="launchShortcut($event)"
             (edit)="openEditShortcutModal($event)"
             (remove)="deleteShortcut($event)"
             (toggleFavorite)="toggleFavorite($event)"
+            (copyToProject)="openCopyShortcutPanel($event)"
+            (toggleSelection)="toggleShortcutSelection($event)"
           />
         </div>
       }
@@ -116,11 +379,11 @@
 
     @if (favoriteShortcuts().length === 0 && regularShortcuts().length === 0) {
       <section class="launcher-empty">
-        <h3>{{ searchQuery().trim() ? 'Sin resultados' : 'Sin accesos todavia' }}</h3>
+        <h3>{{ searchQuery().trim() ? 'Sin resultados' : 'Sin accesos todavía' }}</h3>
         <p>
           {{
             searchQuery().trim()
-              ? 'No hay accesos que coincidan con "' + searchQuery() + '". Ajusta la busqueda o el filtro de categoria.'
+              ? 'No hay accesos que coincidan con "' + searchQuery() + '". Ajusta la búsqueda o el filtro de categoría.'
               : 'Crea tu primer acceso para empezar a usar el launcher.'
           }}
         </p>
@@ -168,7 +431,7 @@
         </label>
 
         <label>
-          <span>Categoria</span>
+          <span>Categoría</span>
           <select formControlName="categoryId">
             <option value="">General</option>
             @for (category of categories(); track category.id) {
@@ -191,3 +454,4 @@
     </section>
   }
 </section>
+

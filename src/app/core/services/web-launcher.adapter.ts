@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 
 import { LauncherAdapter, LauncherRequest, LauncherResult } from '../models/launcher.model';
 
@@ -15,7 +15,7 @@ export class WebLauncherAdapter implements LauncherAdapter {
   async open(request: LauncherRequest): Promise<LauncherResult> {
     const target = request.target?.trim();
     if (!target) {
-      return { success: false, message: 'El destino de apertura esta vacio.' };
+      return { success: false, message: 'El destino de apertura está vacío.' };
     }
 
     if (request.type === 'url') {
@@ -56,3 +56,4 @@ export class WebLauncherAdapter implements LauncherAdapter {
     }
   }
 }
+

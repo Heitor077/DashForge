@@ -1,14 +1,19 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+﻿import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { DEFAULT_CATEGORIES, DEFAULT_SHORTCUTS } from '../data/default-data';
+import { AppState } from '../models/app-state.model';
 import { LauncherResult } from '../models/launcher.model';
+import { ProjectItem } from '../models/project.model';
 import { Category } from '../models/category.model';
 import { Shortcut, ShortcutOperationResult, ShortcutType, ShortcutUpsertInput } from '../models/shortcut.model';
 import { LauncherService } from './launcher.service';
 import { StorageService } from './storage.service';
 
-const SHORTCUTS_STORAGE_KEY = 'dashboard.shortcuts';
+const APP_STATE_STORAGE_KEY = 'dashboard.app-state';
+const LEGACY_SHORTCUTS_STORAGE_KEY = 'dashboard.shortcuts';
 const CATEGORIES_STORAGE_KEY = 'dashboard.categories';
+const GENERAL_PROJECT_ID = 'general';
+const GENERAL_PROJECT_NAME = 'General';
 
 @Injectable({ providedIn: 'root' })
 export class ShortcutsService {
@@ -17,13 +22,18 @@ export class ShortcutsService {
 
   private readonly categoriesSignal = signal<Category[]>(DEFAULT_CATEGORIES);
   private readonly shortcutsSignal = signal<Shortcut[]>([]);
+  private readonly projectsSignal = signal<ProjectItem[]>([]);
+  private readonly activeProjectIdSignal = signal<string>(GENERAL_PROJECT_ID);
 
   readonly categories = computed(() => this.categoriesSignal());
-  readonly shortcuts = computed(() => this.shortcutsSignal());
+  readonly projects = computed(() => this.projectsSignal());
+  readonly activeProjectId = computed(() => this.getActiveProject().id);
+  readonly activeProject = computed(() => this.getActiveProject());
+  readonly shortcuts = computed(() => this.getActiveProjectShortcuts());
 
   constructor() {
     this.loadCategories();
-    this.loadShortcuts();
+    this.loadAppState();
   }
 
   async openShortcut(shortcut: Shortcut): Promise<LauncherResult> {
@@ -56,6 +66,7 @@ export class ShortcutsService {
       type: input.type,
       value: input.value.trim(),
       isFavorite: Boolean(input.isFavorite),
+      includeInProjectLaunch: Boolean(input.includeInProjectLaunch),
       icon: input.icon?.trim() || undefined,
       color: input.color?.trim() || undefined,
       categoryId: input.categoryId?.trim() || undefined
@@ -70,7 +81,7 @@ export class ShortcutsService {
   updateShortcut(input: ShortcutUpsertInput): ShortcutOperationResult {
     const shortcutId = input.id?.trim();
     if (!shortcutId) {
-      return { success: false, error: 'El acceso no tiene id valido.' };
+      return { success: false, error: 'El acceso no tiene id válido.' };
     }
 
     const validation = this.validateInput(input);
@@ -93,6 +104,7 @@ export class ShortcutsService {
           type: input.type,
           value: input.value.trim(),
           isFavorite: input.isFavorite ?? shortcut.isFavorite ?? false,
+          includeInProjectLaunch: input.includeInProjectLaunch ?? shortcut.includeInProjectLaunch ?? false,
           icon: input.icon?.trim() || undefined,
           color: input.color?.trim() || undefined,
           categoryId: input.categoryId?.trim() || undefined
@@ -151,7 +163,7 @@ export class ShortcutsService {
   setShortcutsOrder(sortedShortcuts: Shortcut[]): ShortcutOperationResult {
     const current = this.shortcutsSignal();
     if (sortedShortcuts.length !== current.length) {
-      return { success: false, error: 'El orden recibido no es valido.' };
+      return { success: false, error: 'El orden recibido no es válido.' };
     }
 
     const currentIds = new Set(current.map((shortcut) => shortcut.id));
@@ -171,17 +183,281 @@ export class ShortcutsService {
     return { success: true };
   }
 
+  copyShortcutToProject(shortcutId: string, destinationProjectId: string): ShortcutOperationResult {
+    const sourceShortcutId = shortcutId.trim();
+    if (!sourceShortcutId) {
+      return { success: false, error: 'No se encontro el acceso a copiar.' };
+    }
+
+    const targetProjectId = destinationProjectId.trim();
+    if (!targetProjectId) {
+      return { success: false, error: 'Selecciona un proyecto de destino válido.' };
+    }
+
+    const activeProject = this.getActiveProject();
+    if (targetProjectId === activeProject.id) {
+      return { success: false, error: 'El destino debe ser distinto del proyecto activo.' };
+    }
+
+    const sourceShortcut = this.shortcutsSignal().find((shortcut) => shortcut.id === sourceShortcutId);
+    if (!sourceShortcut) {
+      return { success: false, error: 'No se encontro el acceso en el proyecto activo.' };
+    }
+
+    const destinationProject = this.projectsSignal().find((project) => project.id === targetProjectId);
+    if (!destinationProject) {
+      return { success: false, error: 'No se encontro el proyecto de destino.' };
+    }
+
+    const copiedShortcut: Shortcut = {
+      id: this.createId(),
+      name: sourceShortcut.name,
+      type: sourceShortcut.type,
+      value: sourceShortcut.value,
+      isFavorite: sourceShortcut.isFavorite,
+      includeInProjectLaunch: sourceShortcut.includeInProjectLaunch,
+      icon: sourceShortcut.icon,
+      color: sourceShortcut.color,
+      categoryId: sourceShortcut.categoryId
+    };
+
+    this.projectsSignal.update((projects) =>
+      projects.map((project) =>
+        project.id === destinationProject.id
+          ? {
+              ...project,
+              shortcuts: [copiedShortcut, ...project.shortcuts]
+            }
+          : project
+      )
+    );
+
+    this.persistAppState();
+    return { success: true, shortcut: copiedShortcut };
+  }
+
+  copyShortcutsToProject(shortcutIds: string[], destinationProjectId: string): ShortcutOperationResult {
+    const targetProjectId = destinationProjectId.trim();
+    if (!targetProjectId) {
+      return { success: false, error: 'Selecciona un proyecto de destino válido.' };
+    }
+
+    const activeProject = this.getActiveProject();
+    if (targetProjectId === activeProject.id) {
+      return { success: false, error: 'El destino debe ser distinto del proyecto activo.' };
+    }
+
+    const destinationProject = this.projectsSignal().find((project) => project.id === targetProjectId);
+    if (!destinationProject) {
+      return { success: false, error: 'No se encontro el proyecto de destino.' };
+    }
+
+    const normalizedIds = shortcutIds
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+    if (normalizedIds.length === 0) {
+      return { success: false, error: 'Selecciona al menos un acceso para copiar.' };
+    }
+
+    const sourceById = new Map(this.shortcutsSignal().map((shortcut) => [shortcut.id, shortcut]));
+    const copiedShortcuts: Shortcut[] = [];
+
+    normalizedIds.forEach((id) => {
+      const sourceShortcut = sourceById.get(id);
+      if (!sourceShortcut) {
+        return;
+      }
+
+      copiedShortcuts.push({
+        id: this.createId(),
+        name: sourceShortcut.name,
+        type: sourceShortcut.type,
+        value: sourceShortcut.value,
+        isFavorite: sourceShortcut.isFavorite,
+        includeInProjectLaunch: sourceShortcut.includeInProjectLaunch,
+        icon: sourceShortcut.icon,
+        color: sourceShortcut.color,
+        categoryId: sourceShortcut.categoryId
+      });
+    });
+
+    if (copiedShortcuts.length === 0) {
+      return { success: false, error: 'No se encontraron accesos válidos para copiar.' };
+    }
+
+    this.projectsSignal.update((projects) =>
+      projects.map((project) =>
+        project.id === targetProjectId
+          ? {
+              ...project,
+              shortcuts: [...copiedShortcuts, ...project.shortcuts]
+            }
+          : project
+      )
+    );
+
+    this.persistAppState();
+    return { success: true };
+  }
+
+  updateActiveProjectLaunchSelection(shortcutIds: string[]): ShortcutOperationResult {
+    const selectedIds = new Set(
+      shortcutIds
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+    );
+
+    const updatedShortcuts = this.shortcutsSignal().map((shortcut) => ({
+      ...shortcut,
+      includeInProjectLaunch: selectedIds.has(shortcut.id)
+    }));
+
+    this.shortcutsSignal.set(updatedShortcuts);
+    this.persistShortcuts();
+    return { success: true };
+  }
+
+  getActiveProject(): ProjectItem {
+    const projects = this.projectsSignal();
+    if (projects.length === 0) {
+      const fallbackProject = this.createGeneralProject([...this.shortcutsSignal()]);
+      this.projectsSignal.set([fallbackProject]);
+      this.activeProjectIdSignal.set(fallbackProject.id);
+      this.persistAppState();
+      return fallbackProject;
+    }
+
+    const activeProjectId = this.activeProjectIdSignal().trim();
+    const activeProject =
+      projects.find((project) => project.id === activeProjectId) ?? projects[0];
+
+    if (activeProject.id !== activeProjectId) {
+      this.activeProjectIdSignal.set(activeProject.id);
+      this.persistAppState();
+    }
+
+    return activeProject;
+  }
+
+  setActiveProject(projectId: string): void {
+    const requestedId = projectId.trim();
+    const projects = this.projectsSignal();
+
+    if (projects.length === 0) {
+      const fallbackProject = this.createGeneralProject([...this.shortcutsSignal()]);
+      this.projectsSignal.set([fallbackProject]);
+      this.activeProjectIdSignal.set(fallbackProject.id);
+      this.shortcutsSignal.set([...fallbackProject.shortcuts]);
+      this.persistAppState();
+      return;
+    }
+
+    const nextProject =
+      (requestedId ? projects.find((project) => project.id === requestedId) : undefined) ?? projects[0];
+
+    this.activeProjectIdSignal.set(nextProject.id);
+    this.shortcutsSignal.set([...nextProject.shortcuts]);
+    this.persistAppState();
+  }
+
+  createProject(name: string): ShortcutOperationResult {
+    const projectName = name.trim();
+    if (!projectName) {
+      return { success: false, error: 'El nombre del proyecto es obligatorio.' };
+    }
+
+    const project: ProjectItem = {
+      id: this.createProjectId(),
+      name: projectName,
+      shortcuts: []
+    };
+
+    this.projectsSignal.update((current) => [...current, project]);
+    this.activeProjectIdSignal.set(project.id);
+    this.shortcutsSignal.set([]);
+    this.ensureProjectStateConsistency();
+    this.persistAppState();
+    return { success: true };
+  }
+
+  renameProject(projectId: string, name: string): ShortcutOperationResult {
+    const targetProjectId = projectId.trim();
+    if (!targetProjectId) {
+      return { success: false, error: 'No se encontro el proyecto a renombrar.' };
+    }
+
+    const projectName = name.trim();
+    if (!projectName) {
+      return { success: false, error: 'El nombre del proyecto es obligatorio.' };
+    }
+
+    let found = false;
+    this.projectsSignal.update((projects) =>
+      projects.map((project) => {
+        if (project.id !== targetProjectId) {
+          return project;
+        }
+
+        found = true;
+        return {
+          ...project,
+          name: projectName
+        };
+      })
+    );
+
+    if (!found) {
+      this.ensureProjectStateConsistency();
+      this.persistAppState();
+      return { success: false, error: 'No se encontro el proyecto a renombrar.' };
+    }
+
+    this.ensureProjectStateConsistency();
+    this.persistAppState();
+    return { success: true };
+  }
+
+  deleteProject(projectId: string): ShortcutOperationResult {
+    const targetProjectId = projectId.trim();
+    if (!targetProjectId) {
+      return { success: false, error: 'No se encontro el proyecto a eliminar.' };
+    }
+
+    const projects = this.projectsSignal();
+    if (projects.length <= 1) {
+      return { success: false, error: 'Debe existir al menos un proyecto.' };
+    }
+
+    const nextProjects = projects.filter((project) => project.id !== targetProjectId);
+    if (nextProjects.length === projects.length) {
+      return { success: false, error: 'No se encontro el proyecto a eliminar.' };
+    }
+
+    this.projectsSignal.set(nextProjects);
+
+    const currentActiveProjectId = this.activeProjectIdSignal().trim();
+    const hasCurrentActive = currentActiveProjectId && nextProjects.some((project) => project.id === currentActiveProjectId);
+    const nextActiveProjectId = hasCurrentActive ? currentActiveProjectId : nextProjects[0].id;
+    const nextActiveProject = nextProjects.find((project) => project.id === nextActiveProjectId) ?? nextProjects[0];
+
+    this.activeProjectIdSignal.set(nextActiveProject.id);
+    this.shortcutsSignal.set([...nextActiveProject.shortcuts]);
+    this.ensureProjectStateConsistency();
+    this.persistAppState();
+    return { success: true };
+  }
+
   createCategory(name: string): ShortcutOperationResult {
     const categoryName = name.trim();
     if (!categoryName) {
-      return { success: false, error: 'El nombre de la categoria es obligatorio.' };
+      return { success: false, error: 'El nombre de la categoría es obligatorio.' };
     }
 
     const alreadyExists = this.categoriesSignal().some(
       (category) => category.name.toLowerCase() === categoryName.toLowerCase()
     );
     if (alreadyExists) {
-      return { success: false, error: 'Ya existe una categoria con ese nombre.' };
+      return { success: false, error: 'Ya existe una categoría con ese nombre.' };
     }
 
     this.categoriesSignal.update((current) => [
@@ -195,7 +471,7 @@ export class ShortcutsService {
   updateCategory(categoryId: string, name: string): ShortcutOperationResult {
     const categoryName = name.trim();
     if (!categoryName) {
-      return { success: false, error: 'El nombre de la categoria es obligatorio.' };
+      return { success: false, error: 'El nombre de la categoría es obligatorio.' };
     }
 
     let found = false;
@@ -210,7 +486,7 @@ export class ShortcutsService {
     );
 
     if (!found) {
-      return { success: false, error: 'No se encontro la categoria a editar.' };
+      return { success: false, error: 'No se encontro la categoría a editar.' };
     }
 
     this.persistCategories();
@@ -220,7 +496,7 @@ export class ShortcutsService {
   deleteCategory(categoryId: string): ShortcutOperationResult {
     const exists = this.categoriesSignal().some((category) => category.id === categoryId);
     if (!exists) {
-      return { success: false, error: 'No se encontro la categoria a eliminar.' };
+      return { success: false, error: 'No se encontro la categoría a eliminar.' };
     }
 
     this.categoriesSignal.update((current) => current.filter((category) => category.id !== categoryId));
@@ -250,13 +526,13 @@ export class ShortcutsService {
       .map((category) => this.normalizeCategory(category))
       .filter((category): category is Category => category !== null);
     if (normalizedCategories.length !== payload.categories.length) {
-      return { success: false, error: 'Hay categorias invalidas en el archivo.' };
+      return { success: false, error: 'Hay categorías inválidas en el archivo.' };
     }
 
     const uniqueCategoryIds = new Set<string>();
     for (const category of normalizedCategories) {
       if (uniqueCategoryIds.has(category.id)) {
-        return { success: false, error: 'Hay categorias duplicadas en el archivo.' };
+        return { success: false, error: 'Hay categorías duplicadas en el archivo.' };
       }
       uniqueCategoryIds.add(category.id);
     }
@@ -266,7 +542,7 @@ export class ShortcutsService {
       .map((shortcut) => this.normalizeShortcut(shortcut, validCategoryIds))
       .filter((shortcut): shortcut is Shortcut => shortcut !== null);
     if (normalizedShortcuts.length !== payload.shortcuts.length) {
-      return { success: false, error: 'Hay accesos invalidos en el archivo.' };
+      return { success: false, error: 'Hay accesos inválidos en el archivo.' };
     }
 
     return { success: true };
@@ -301,16 +577,31 @@ export class ShortcutsService {
     this.persistCategories();
   }
 
-  private loadShortcuts(): void {
-    const storedShortcuts = this.storageService.getItem<unknown[]>(SHORTCUTS_STORAGE_KEY);
+  private loadAppState(): void {
     const validCategoryIds = new Set(this.categoriesSignal().map((category) => category.id));
-    const normalized = (storedShortcuts ?? [])
+    const storedAppState = this.storageService.getItem<unknown>(APP_STATE_STORAGE_KEY);
+    const normalizedState = this.normalizeAppState(storedAppState, validCategoryIds);
+
+    if (normalizedState) {
+      this.projectsSignal.set(normalizedState.projects);
+      this.activeProjectIdSignal.set(normalizedState.activeProjectId);
+      this.shortcutsSignal.set(this.resolveActiveProjectShortcuts(normalizedState));
+      this.persistAppState();
+      return;
+    }
+
+    const storedLegacyShortcuts = this.storageService.getItem<unknown[]>(LEGACY_SHORTCUTS_STORAGE_KEY);
+    const normalizedLegacyShortcuts = (storedLegacyShortcuts ?? [])
       .map((item) => this.normalizeShortcut(item, validCategoryIds))
       .filter((item): item is Shortcut => item !== null);
-    const shortcuts = normalized.length > 0 ? normalized : DEFAULT_SHORTCUTS;
 
-    this.shortcutsSignal.set(shortcuts);
-    this.persistShortcuts();
+    const legacyShortcuts = normalizedLegacyShortcuts.length > 0 ? normalizedLegacyShortcuts : DEFAULT_SHORTCUTS;
+    const migratedProject = this.createGeneralProject(legacyShortcuts);
+
+    this.projectsSignal.set([migratedProject]);
+    this.activeProjectIdSignal.set(GENERAL_PROJECT_ID);
+    this.shortcutsSignal.set([...legacyShortcuts]);
+    this.persistAppState();
   }
 
   private persistCategories(): void {
@@ -318,7 +609,130 @@ export class ShortcutsService {
   }
 
   private persistShortcuts(): void {
-    this.storageService.setItem(SHORTCUTS_STORAGE_KEY, this.shortcutsSignal());
+    this.syncActiveProjectShortcuts();
+    this.persistAppState();
+  }
+
+  private syncActiveProjectShortcuts(): void {
+    const activeProjectId = this.activeProjectIdSignal();
+    const currentShortcuts = this.shortcutsSignal();
+
+    this.projectsSignal.update((projects) =>
+      projects.map((project) =>
+        project.id === activeProjectId
+          ? {
+              ...project,
+              shortcuts: [...currentShortcuts]
+            }
+          : project
+      )
+    );
+  }
+
+  private persistAppState(): void {
+    const activeProjectId = this.activeProjectIdSignal();
+    const projects = this.projectsSignal();
+    this.storageService.setItem<AppState>(APP_STATE_STORAGE_KEY, {
+      projects,
+      activeProjectId: projects.some((project) => project.id === activeProjectId) ? activeProjectId : projects[0]?.id ?? GENERAL_PROJECT_ID
+    });
+  }
+
+  private resolveActiveProjectShortcuts(state: AppState): Shortcut[] {
+    const activeProject = state.projects.find((project) => project.id === state.activeProjectId) ?? state.projects[0];
+    return activeProject ? [...activeProject.shortcuts] : [];
+  }
+
+  private getActiveProjectShortcuts(): Shortcut[] {
+    const activeProject = this.getActiveProject();
+    const currentShortcuts = this.shortcutsSignal();
+
+    if (activeProject.id === this.activeProjectIdSignal()) {
+      return [...currentShortcuts];
+    }
+
+    return [...activeProject.shortcuts];
+  }
+
+  private ensureProjectStateConsistency(): void {
+    let projects = this.projectsSignal();
+
+    if (projects.length === 0) {
+      const fallbackProject = this.createGeneralProject([...this.shortcutsSignal()]);
+      this.projectsSignal.set([fallbackProject]);
+      projects = [fallbackProject];
+    }
+
+    const activeProjectId = this.activeProjectIdSignal().trim();
+    const activeProject = projects.find((project) => project.id === activeProjectId) ?? projects[0];
+
+    if (activeProject.id !== activeProjectId) {
+      this.activeProjectIdSignal.set(activeProject.id);
+    }
+
+    this.shortcutsSignal.set([...activeProject.shortcuts]);
+  }
+
+  private normalizeAppState(raw: unknown, validCategoryIds: Set<string>): AppState | null {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+
+    const source = raw as Record<string, unknown>;
+    if (!Array.isArray(source['projects'])) {
+      return null;
+    }
+
+    const normalizedProjects = source['projects']
+      .map((project) => this.normalizeProject(project, validCategoryIds))
+      .filter((project): project is ProjectItem => project !== null);
+    if (normalizedProjects.length === 0) {
+      return null;
+    }
+
+    const activeProjectIdRaw = typeof source['activeProjectId'] === 'string' ? source['activeProjectId'].trim() : '';
+    const activeProjectId =
+      activeProjectIdRaw && normalizedProjects.some((project) => project.id === activeProjectIdRaw)
+        ? activeProjectIdRaw
+        : normalizedProjects[0].id;
+
+    return {
+      projects: normalizedProjects,
+      activeProjectId
+    };
+  }
+
+  private normalizeProject(raw: unknown, validCategoryIds: Set<string>): ProjectItem | null {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+
+    const source = raw as Record<string, unknown>;
+    const id = typeof source['id'] === 'string' ? source['id'].trim() : '';
+    const name = typeof source['name'] === 'string' ? source['name'].trim() : '';
+    const shortcutsSource = Array.isArray(source['shortcuts']) ? source['shortcuts'] : [];
+
+    if (!id || !name) {
+      return null;
+    }
+
+    const shortcuts = shortcutsSource
+      .map((item) => this.normalizeShortcut(item, validCategoryIds))
+      .filter((item): item is Shortcut => item !== null);
+
+    return {
+      id,
+      name,
+      shortcuts
+    };
+  }
+
+  private createGeneralProject(shortcuts: Shortcut[]): ProjectItem {
+    return {
+      id: GENERAL_PROJECT_ID,
+      name: GENERAL_PROJECT_NAME,
+      shortcuts: [...shortcuts]
+    };
   }
 
   private validateInput(input: ShortcutUpsertInput): ShortcutOperationResult {
@@ -327,7 +741,7 @@ export class ShortcutsService {
     }
 
     if (!this.isValidShortcutType(input.type)) {
-      return { success: false, error: 'El tipo de acceso no es valido.' };
+      return { success: false, error: 'El tipo de acceso no es válido.' };
     }
 
     if (!input.value?.trim()) {
@@ -348,6 +762,10 @@ export class ShortcutsService {
 
   private createId(): string {
     return `sc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  private createProjectId(): string {
+    return `pr-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   }
 
   private normalizeShortcut(raw: unknown, validCategoryIds: Set<string>): Shortcut | null {
@@ -376,6 +794,8 @@ export class ShortcutsService {
     const color = typeof source['color'] === 'string' ? source['color'].trim() : '';
     const categoryId = typeof source['categoryId'] === 'string' ? source['categoryId'].trim() : '';
     const isFavorite = typeof source['isFavorite'] === 'boolean' ? source['isFavorite'] : false;
+    const includeInProjectLaunch =
+      typeof source['includeInProjectLaunch'] === 'boolean' ? source['includeInProjectLaunch'] : false;
     const normalizedCategoryId = categoryId && validCategoryIds.has(categoryId) ? categoryId : '';
 
     return {
@@ -384,6 +804,7 @@ export class ShortcutsService {
       type,
       value: normalizedValue,
       isFavorite,
+      includeInProjectLaunch,
       icon: icon || undefined,
       color: color || undefined,
       categoryId: normalizedCategoryId || undefined
@@ -457,3 +878,4 @@ export class ShortcutsService {
     };
   }
 }
+

@@ -17,11 +17,16 @@ export class ShortcutCardComponent implements OnChanges {
   @Input() showLabels = true;
   @Input() searchTerm = '';
   @Input() isKeyboardSelected = false;
+  @Input() canCopyToProject = false;
+  @Input() isSelectionMode = false;
+  @Input() isSelected = false;
 
   @Output() launch = new EventEmitter<Shortcut>();
   @Output() edit = new EventEmitter<Shortcut>();
   @Output() remove = new EventEmitter<Shortcut>();
   @Output() toggleFavorite = new EventEmitter<Shortcut>();
+  @Output() copyToProject = new EventEmitter<Shortcut>();
+  @Output() toggleSelection = new EventEmitter<Shortcut>();
   iconView: ResolvedShortcutIcon = { mode: 'initial', text: 'SC' };
   isOptionsOpen = false;
   titleHighlight = [{ text: '', match: false }];
@@ -34,6 +39,12 @@ export class ShortcutCardComponent implements OnChanges {
   }
 
   onLaunch(): void {
+    if (this.isSelectionMode) {
+      this.isOptionsOpen = false;
+      this.toggleSelection.emit(this.shortcut);
+      return;
+    }
+
     this.isOptionsOpen = false;
     this.launch.emit(this.shortcut);
   }
@@ -71,6 +82,12 @@ export class ShortcutCardComponent implements OnChanges {
     event.stopPropagation();
     this.isOptionsOpen = false;
     this.toggleFavorite.emit(this.shortcut);
+  }
+
+  onCopyToProject(event: Event): void {
+    event.stopPropagation();
+    this.isOptionsOpen = false;
+    this.copyToProject.emit(this.shortcut);
   }
 
   @HostListener('document:click')

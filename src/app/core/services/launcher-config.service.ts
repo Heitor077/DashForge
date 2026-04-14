@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+﻿import { Injectable, inject } from '@angular/core';
 
 import { DashboardSettings } from '../models/dashboard-settings.model';
 import {
@@ -51,7 +51,7 @@ export class LauncherConfigService {
     if (!shortcutValidation.success) {
       return {
         success: false,
-        error: shortcutValidation.error ?? 'El archivo contiene accesos o categorias invalidos.'
+        error: shortcutValidation.error ?? 'El archivo contiene accesos o categorías inválidos.'
       };
     }
 
@@ -63,7 +63,7 @@ export class LauncherConfigService {
     if (!visualValidation.success) {
       return {
         success: false,
-        error: visualValidation.error ?? 'La configuracion visual no es valida.'
+        error: visualValidation.error ?? 'La configuración visual no es valida.'
       };
     }
 
@@ -85,11 +85,11 @@ export class LauncherConfigService {
     try {
       parsed = JSON.parse(rawJson);
     } catch {
-      return { success: false, error: 'El archivo no contiene JSON valido.' };
+      return { success: false, error: 'El archivo no contiene JSON válido.' };
     }
 
     if (!parsed || typeof parsed !== 'object') {
-      return { success: false, error: 'El formato del archivo no es valido.' };
+      return { success: false, error: 'El formato del archivo no es válido.' };
     }
 
     const source = parsed as Record<string, unknown>;
@@ -112,19 +112,19 @@ export class LauncherConfigService {
     const customPresets = rawData['customPresets'];
 
     if (!Array.isArray(shortcuts) || !Array.isArray(categories)) {
-      return { success: false, error: 'El archivo no incluye shortcuts/categorias validos.' };
+      return { success: false, error: 'El archivo no incluye shortcuts/categorías válidos.' };
     }
 
     if (!this.isSettingsShape(settings)) {
-      return { success: false, error: 'El bloque de settings es invalido.' };
+      return { success: false, error: 'El bloque de settings es inválido.' };
     }
 
     if (visualState !== undefined && !this.isVisualStateShape(visualState)) {
-      return { success: false, error: 'El bloque visualState es invalido.' };
+      return { success: false, error: 'El bloque visualState es inválido.' };
     }
 
     if (customPresets !== undefined && !Array.isArray(customPresets)) {
-      return { success: false, error: 'El bloque customPresets es invalido.' };
+      return { success: false, error: 'El bloque customPresets es inválido.' };
     }
 
     const visualStateSource =
@@ -184,3 +184,4 @@ export class LauncherConfigService {
     return isOptionalString(themeId) && isOptionalString(wallpaperId) && isOptionalString(presetId);
   }
 }
+

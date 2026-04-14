@@ -1,8 +1,8 @@
-<section class="settings">
+﻿<section class="settings">
   <header class="settings__header">
     <div>
       <p class="settings__eyebrow">Dashboard</p>
-      <h1>Configuracion</h1>
+      <h1>Configuración</h1>
       <p class="settings__subtitle">Personaliza tu launcher visual y comportamiento</p>
     </div>
     <a routerLink="/" class="settings__back">Volver al dashboard</a>
@@ -61,7 +61,7 @@
               }
             </div>
           } @else {
-            <p class="preset-empty">Todavia no hay presets personalizados. Guarda tu configuracion actual para crear el primero.</p>
+            <p class="preset-empty">Todavía no hay presets personalizados. Guarda tu configuración actual para crear el primero.</p>
           }
         </div>
 
@@ -241,7 +241,7 @@
               class="layout-option"
               [class.layout-option--active]="option.isAuto ? isAutoLayoutColumns() : option.value === layoutColumns()"
               [class.layout-option--auto]="option.isAuto"
-              [attr.aria-label]="option.isAuto ? 'Layout automatico recomendado' : 'Layout de ' + option.label + ' columnas'"
+              [attr.aria-label]="option.isAuto ? 'Layout automático recomendado' : 'Layout de ' + option.label + ' columnas'"
               (click)="option.isAuto ? setAutoColumns() : setColumns(option.value)"
             >
               <span class="layout-option__preview" [style.--layout-preview-columns]="option.visualColumns">
@@ -269,11 +269,11 @@
 
     <article class="settings-card">
       <h2>Comportamiento</h2>
-      <p>Controla interaccion y preferencias de uso diario.</p>
+      <p>Controla interacción y preferencias de uso diario.</p>
 
       <div class="settings-row">
         <span>Densidad visual</span>
-        <p class="settings-helper">Define cuanta informacion ves por pantalla y cuanto aire visual mantiene la interfaz.</p>
+        <p class="settings-helper">Define cuánta información ves por pantalla y cuanto aire visual mantiene la interfaz.</p>
         <div class="behavior-options-grid behavior-options-grid--two">
           @for (density of densityOptionMeta; track density.id) {
             <button
@@ -306,7 +306,7 @@
 
       <div class="settings-row">
         <span>Comportamiento de apertura</span>
-        <p class="settings-helper">Elige como se abren los accesos cuando haces click en una tarjeta.</p>
+        <p class="settings-helper">Elige cómo se abren los accesos cuando haces clic en una tarjeta.</p>
         <div class="behavior-options-grid">
           @for (mode of openBehaviorOptionMeta; track mode.id) {
             <button
@@ -324,11 +324,11 @@
     </article>
     <article class="settings-card">
       <h2>Sistema</h2>
-      <p>Respaldo, migracion y estado del runtime actual.</p>
+      <p>Respaldo, migración y estado del runtime actual.</p>
 
       <div class="settings-row">
-        <span>Exportar configuracion</span>
-        <p class="settings-helper">Guarda una copia completa de tu configuracion actual para restaurarla cuando quieras.</p>
+        <span>Exportar configuración</span>
+        <p class="settings-helper">Guarda una copia completa de tu configuración actual para restaurarla cuando quieras.</p>
         <div class="import-actions">
           <button type="button" class="pill" (click)="exportConfiguration()">Descargar backup JSON</button>
           <button type="button" class="pill" (click)="downloadImportExample()">Descargar ejemplo</button>
@@ -336,7 +336,7 @@
       </div>
 
       <div class="settings-row">
-        <span>Importar configuracion</span>
+        <span>Importar configuración</span>
         <p class="settings-helper">Carga un JSON exportado previamente desde DashForge para recuperar accesos, temas y preferencias.</p>
         <div class="import-actions">
           <input
@@ -364,7 +364,7 @@
 
       <div class="settings-row">
         <span>Runtime actual</span>
-        <p class="settings-helper">Estado del entorno y de las capacidades disponibles en esta sesion.</p>
+        <p class="settings-helper">Estado del entorno y de las capacidades disponibles en está sesión.</p>
         <div class="behavior-options-grid">
           @for (item of runtimeCapabilitiesSummary(); track item.id) {
             <article class="behavior-option">
@@ -385,5 +385,8 @@
     </article>
   </div>
 </section>
+
+
+
 
 

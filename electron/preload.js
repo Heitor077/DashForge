@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+﻿const { contextBridge, ipcRenderer } = require('electron');
 
 const IPC_CHANNELS = {
   launcherOpen: 'launcher:open'
@@ -16,7 +16,7 @@ function normalizeTarget(raw) {
 
 function toLauncherResult(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { success: false, message: 'Respuesta invalida del proceso principal.' };
+    return { success: false, message: 'Respuestá inválida del proceso principal.' };
   }
 
   const success = raw.success === true;
@@ -31,7 +31,7 @@ async function invokeLauncher(type, target) {
   }
 
   if (!normalizedTarget) {
-    return { success: false, message: 'El destino de apertura esta vacio.' };
+    return { success: false, message: 'El destino de apertura está vacío.' };
   }
 
   try {
@@ -65,3 +65,4 @@ contextBridge.exposeInMainWorld('desktopLauncher', desktopLauncherApi);
 contextBridge.exposeInMainWorld('desktop', {
   platform: process.platform
 });
+

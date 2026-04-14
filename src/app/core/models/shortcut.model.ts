@@ -1,15 +1,18 @@
 export type ShortcutType = 'url' | 'folder' | 'resource';
 
-export interface Shortcut {
+export interface ShortcutItem {
   id: string;
   name: string;
   type: ShortcutType;
   value: string;
   isFavorite?: boolean;
+  includeInProjectLaunch?: boolean;
   icon?: string;
   color?: string;
   categoryId?: string;
 }
+
+export type Shortcut = ShortcutItem;
 
 export interface ShortcutUpsertInput {
   id?: string;
@@ -17,6 +20,7 @@ export interface ShortcutUpsertInput {
   type: ShortcutType;
   value: string;
   isFavorite?: boolean;
+  includeInProjectLaunch?: boolean;
   icon?: string;
   color?: string;
   categoryId?: string;
@@ -25,5 +29,5 @@ export interface ShortcutUpsertInput {
 export interface ShortcutOperationResult {
   success: boolean;
   error?: string;
-  shortcut?: Shortcut;
+  shortcut?: ShortcutItem;
 }

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+﻿const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { fileURLToPath } = require('node:url');
@@ -108,7 +108,7 @@ async function handleLauncherOpen(request) {
   const target = normalizeTarget(request?.target);
 
   if (!target) {
-    return { success: false, message: 'El destino de apertura esta vacio.' };
+    return { success: false, message: 'El destino de apertura está vacío.' };
   }
 
   if (type === 'url') {
@@ -158,17 +158,17 @@ async function handleLauncherOpen(request) {
   if (type === 'external-app') {
     const normalizedPath = normalizeWindowsTarget(target);
     if (!normalizedPath || !isAbsolutePath(normalizedPath)) {
-      return { success: false, message: 'openExternalApp requiere ruta absoluta a una aplicacion local.' };
+      return { success: false, message: 'openExternalApp requiere ruta absoluta a una aplicación local.' };
     }
 
     const stats = await getPathStats(normalizedPath);
     if (!stats || !stats.isFile()) {
-      return { success: false, message: 'La aplicacion indicada no existe o no es un archivo.' };
+      return { success: false, message: 'La aplicación indicada no existe o no es un archivo.' };
     }
 
     const extension = path.extname(normalizedPath).toLowerCase();
     if (!ALLOWED_APP_EXTENSIONS.has(extension)) {
-      return { success: false, message: 'Tipo de aplicacion no permitido para openExternalApp.' };
+      return { success: false, message: 'Tipo de aplicación no permitido para openExternalApp.' };
     }
 
     return openPathTarget(normalizedPath);
@@ -200,6 +200,10 @@ function createMainWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.setTitle(APP_TITLE);
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -257,3 +261,4 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+

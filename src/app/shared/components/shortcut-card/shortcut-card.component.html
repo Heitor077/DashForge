@@ -1,10 +1,22 @@
-﻿<article class="shortcut-card" [class.shortcut-card--selected]="isKeyboardSelected" (contextmenu)="openContextMenu($event)">
+﻿<article
+  class="shortcut-card"
+  [class.shortcut-card--selected]="isKeyboardSelected"
+  [class.shortcut-card--multi-selected]="isSelected"
+  [class.shortcut-card--selection-mode]="isSelectionMode"
+  (contextmenu)="openContextMenu($event)"
+>
+  @if (isSelectionMode) {
+    <span class="shortcut-card__selection-indicator" [class.shortcut-card__selection-indicator--active]="isSelected">
+      {{ isSelected ? 'v' : '' }}
+    </span>
+  }
+
   <button type="button" class="shortcut-card__quick-edit" (click)="onQuickEdit($event)" aria-label="Editar acceso">
-    ✎
+    E
   </button>
 
   <button type="button" class="shortcut-card__options-toggle" (click)="toggleOptions($event)" aria-label="Opciones">
-    ⋯
+    ...
   </button>
 
   @if (isOptionsOpen) {
@@ -12,6 +24,9 @@
       <button type="button" class="shortcut-card__option" (click)="onToggleFavorite($event)">
         {{ shortcut.isFavorite ? 'Quitar destacado' : 'Marcar destacado' }}
       </button>
+      @if (canCopyToProject) {
+        <button type="button" class="shortcut-card__option" (click)="onCopyToProject($event)">Copiar a proyecto...</button>
+      }
       <button type="button" class="shortcut-card__option" (click)="onEdit($event)">Editar detalle</button>
       <button type="button" class="shortcut-card__option shortcut-card__option--danger" (click)="onRemove($event)">
         Borrar
@@ -21,7 +36,7 @@
 
   <button type="button" class="shortcut-card__launch" (click)="onLaunch()">
     @if (shortcut.isFavorite) {
-      <span class="shortcut-card__favorite-badge" aria-hidden="true">★</span>
+      <span class="shortcut-card__favorite-badge" aria-hidden="true">*</span>
     }
 
     <div class="shortcut-card__icon" [style.background-color]="shortcut.color || ''">

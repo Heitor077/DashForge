@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common';
+﻿import { DOCUMENT } from '@angular/common';
 import { Component, ElementRef, HostListener, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
@@ -26,6 +26,9 @@ export class DashboardPageComponent {
   readonly themeService = inject(ThemeService);
 
   readonly shortcuts = this.shortcutsService.shortcuts;
+  readonly projects = this.shortcutsService.projects;
+  readonly activeProject = this.shortcutsService.activeProject;
+  readonly activeProjectId = this.shortcutsService.activeProjectId;
   readonly categories = this.shortcutsService.categories;
   readonly settings = this.themeService.settings;
   readonly shortcutTypes: ShortcutType[] = ['url', 'folder', 'resource'];
@@ -49,6 +52,25 @@ export class DashboardPageComponent {
   readonly searchQuery = signal('');
   readonly selectedShortcutId = signal('');
   readonly formError = signal('');
+  readonly projectEditorMode = signal<'idle' | 'create' | 'rename'>('idle');
+  readonly projectNameInput = signal('');
+  readonly projectNameError = signal('');
+  readonly isDeleteProjectConfirmOpen = signal(false);
+  readonly isProjectDropdownOpen = signal(false);
+  readonly shortcutToCopy = signal<Shortcut | null>(null);
+  readonly copyTargetProjectId = signal('');
+  readonly copyShortcutError = signal('');
+  readonly isMultiSelectMode = signal(false);
+  readonly selectedShortcutIds = signal<string[]>([]);
+  readonly isBulkCopyPanelOpen = signal(false);
+  readonly bulkCopyTargetProjectId = signal('');
+  readonly bulkCopyError = signal('');
+  readonly isBulkCopyDropdownOpen = signal(false);
+  readonly isProjectLaunchDropdownOpen = signal(false);
+  readonly isProjectLaunchConfigMode = signal(false);
+  readonly projectLaunchDraftSelectedIds = signal<string[]>([]);
+  readonly projectLaunchConfigError = signal('');
+  readonly isProjectLaunchRunning = signal(false);
   readonly actionFeedback = signal<{ type: 'idle' | 'success' | 'error'; message: string }>({
     type: 'idle',
     message: ''
@@ -133,6 +155,14 @@ export class DashboardPageComponent {
   readonly favoriteShortcuts = computed(() => this.filteredShortcuts().filter((shortcut) => shortcut.isFavorite));
   readonly regularShortcuts = computed(() => this.filteredShortcuts().filter((shortcut) => !shortcut.isFavorite));
   readonly orderedVisibleShortcuts = computed(() => [...this.favoriteShortcuts(), ...this.regularShortcuts()]);
+  readonly canDeleteProject = computed(() => this.projects().length > 1);
+  readonly canCopyShortcutToAnotherProject = computed(() => this.projects().length > 1);
+  readonly selectedShortcutsCount = computed(() => this.selectedShortcutIds().length);
+  readonly canOpenBulkCopyAction = computed(() => this.isMultiSelectMode() && this.selectedShortcutsCount() > 0);
+  readonly projectLaunchSelectedCount = computed(() => this.projectLaunchDraftSelectedIds().length);
+  readonly copyDestinationProjects = computed(() =>
+    this.projects().filter((project) => project.id !== this.activeProjectId())
+  );
   readonly categoryFilters = computed(() => [
     { id: DashboardPageComponent.ALL_CATEGORY_ID, name: 'Todos' },
     ...this.categories()
@@ -274,6 +304,451 @@ export class DashboardPageComponent {
     this.searchQuery.set(rawValue);
   }
 
+  setActiveProject(projectId: string): void {
+    this.shortcutsService.setActiveProject(projectId);
+    this.closeProjectDropdown();
+    this.closeProjectLaunchDropdown();
+    this.cancelCopyShortcutPanel();
+    this.resetBulkCopyState();
+    this.clearSelectedShortcuts();
+    this.cancelProjectLaunchConfigMode();
+  }
+
+  toggleProjectDropdown(): void {
+    if (!this.isProjectDropdownOpen()) {
+      this.closeBulkCopyDropdown();
+    }
+    this.isProjectDropdownOpen.update((value) => !value);
+  }
+
+  closeProjectDropdown(): void {
+    this.isProjectDropdownOpen.set(false);
+  }
+
+  selectProjectFromDropdown(projectId: string): void {
+    this.setActiveProject(projectId);
+  }
+
+  createProject(): void {
+    this.closeProjectDropdown();
+    this.closeProjectLaunchDropdown();
+    this.cancelProjectLaunchConfigMode();
+    this.cancelCopyShortcutPanel();
+    this.projectEditorMode.set('create');
+    this.projectNameInput.set('');
+    this.projectNameError.set('');
+    this.isDeleteProjectConfirmOpen.set(false);
+  }
+
+  renameActiveProject(): void {
+    this.closeProjectDropdown();
+    this.closeProjectLaunchDropdown();
+    this.cancelProjectLaunchConfigMode();
+    this.cancelCopyShortcutPanel();
+    this.projectEditorMode.set('rename');
+    this.projectNameInput.set(this.activeProject().name);
+    this.projectNameError.set('');
+    this.isDeleteProjectConfirmOpen.set(false);
+  }
+
+  deleteActiveProject(): void {
+    this.closeProjectDropdown();
+    this.closeProjectLaunchDropdown();
+    this.cancelProjectLaunchConfigMode();
+    this.cancelCopyShortcutPanel();
+    const projects = this.projects();
+    if (projects.length <= 1) {
+      this.setActionFeedback('error', 'Debe existir al menos un proyecto.');
+      return;
+    }
+
+    this.projectEditorMode.set('idle');
+    this.projectNameError.set('');
+    this.isDeleteProjectConfirmOpen.set(true);
+  }
+
+  cancelProjectEditor(): void {
+    this.projectEditorMode.set('idle');
+    this.projectNameInput.set('');
+    this.projectNameError.set('');
+  }
+
+  setProjectNameInput(value: string): void {
+    this.projectNameInput.set(value);
+    if (value.trim()) {
+      this.projectNameError.set('');
+    }
+  }
+
+  saveProjectEditor(event: Event): void {
+    event.preventDefault();
+
+    const normalizedName = this.projectNameInput().trim();
+    if (!normalizedName) {
+      this.projectNameError.set('El nombre del proyecto es obligatorio.');
+      this.setActionFeedback('error', 'El nombre del proyecto es obligatorio.');
+      return;
+    }
+
+    const mode = this.projectEditorMode();
+    const result =
+      mode === 'rename'
+        ? this.shortcutsService.renameProject(this.activeProject().id, normalizedName)
+        : this.shortcutsService.createProject(normalizedName);
+
+    this.handleOperationResult(result, mode === 'rename' ? 'Proyecto renombrado.' : 'Proyecto creado y seleccionado.');
+    if (result.success) {
+      if (mode === 'create') {
+        this.clearSelectedShortcuts();
+        this.resetBulkCopyState();
+        this.cancelCopyShortcutPanel();
+      }
+      this.cancelProjectEditor();
+    }
+  }
+
+  cancelDeleteProject(): void {
+    this.isDeleteProjectConfirmOpen.set(false);
+  }
+
+  confirmDeleteActiveProject(): void {
+    if (this.projects().length <= 1) {
+      this.setActionFeedback('error', 'Debe existir al menos un proyecto.');
+      this.isDeleteProjectConfirmOpen.set(false);
+      return;
+    }
+
+    const result = this.shortcutsService.deleteProject(this.activeProject().id);
+    this.handleOperationResult(result, 'Proyecto eliminado.');
+    if (result.success) {
+      this.isDeleteProjectConfirmOpen.set(false);
+      this.clearSelectedShortcuts();
+      this.resetBulkCopyState();
+      this.cancelCopyShortcutPanel();
+      this.cancelProjectLaunchConfigMode();
+    }
+  }
+
+  openCopyShortcutPanel(shortcut: Shortcut): void {
+    if (!this.canCopyShortcutToAnotherProject()) {
+      this.setActionFeedback('error', 'No hay proyectos de destino disponibles.');
+      return;
+    }
+
+    const destinationProjects = this.copyDestinationProjects();
+    if (destinationProjects.length === 0) {
+      this.setActionFeedback('error', 'No hay proyectos de destino disponibles.');
+      return;
+    }
+
+    this.closeProjectDropdown();
+    this.closeProjectLaunchDropdown();
+    this.cancelBulkCopyPanel();
+    this.projectEditorMode.set('idle');
+    this.isDeleteProjectConfirmOpen.set(false);
+    this.shortcutToCopy.set(shortcut);
+    this.copyTargetProjectId.set(destinationProjects[0].id);
+    this.copyShortcutError.set('');
+  }
+
+  setCopyTargetProjectId(projectId: string): void {
+    this.copyTargetProjectId.set(projectId);
+    if (projectId.trim()) {
+      this.copyShortcutError.set('');
+    }
+  }
+
+  cancelCopyShortcutPanel(): void {
+    this.shortcutToCopy.set(null);
+    this.copyTargetProjectId.set('');
+    this.copyShortcutError.set('');
+  }
+
+  toggleMultiSelectMode(): void {
+    const nextState = !this.isMultiSelectMode();
+    this.isMultiSelectMode.set(nextState);
+    if (nextState && this.isProjectLaunchConfigMode()) {
+      this.cancelProjectLaunchConfigMode();
+    }
+    this.closeProjectLaunchDropdown();
+    this.cancelCopyShortcutPanel();
+    if (!nextState) {
+      this.resetBulkCopyState();
+      this.clearSelectedShortcuts();
+    }
+  }
+
+  toggleShortcutSelection(shortcut: Shortcut): void {
+    if (this.isProjectLaunchConfigMode()) {
+      this.projectLaunchDraftSelectedIds.update((current) => {
+        const exists = current.includes(shortcut.id);
+        if (exists) {
+          return current.filter((id) => id !== shortcut.id);
+        }
+
+        return [...current, shortcut.id];
+      });
+      return;
+    }
+
+    if (!this.isMultiSelectMode()) {
+      return;
+    }
+
+    this.selectedShortcutIds.update((current) => {
+      const exists = current.includes(shortcut.id);
+      if (exists) {
+        return current.filter((id) => id !== shortcut.id);
+      }
+
+      return [...current, shortcut.id];
+    });
+  }
+
+  isShortcutSelected(shortcutId: string): boolean {
+    if (this.isProjectLaunchConfigMode()) {
+      return this.projectLaunchDraftSelectedIds().includes(shortcutId);
+    }
+
+    return this.selectedShortcutIds().includes(shortcutId);
+  }
+
+  toggleProjectLaunchDropdown(): void {
+    if (!this.isProjectLaunchDropdownOpen()) {
+      this.closeProjectDropdown();
+      this.closeBulkCopyDropdown();
+    }
+    this.isProjectLaunchDropdownOpen.update((value) => !value);
+  }
+
+  closeProjectLaunchDropdown(): void {
+    this.isProjectLaunchDropdownOpen.set(false);
+  }
+
+  async openProjectComplete(): Promise<void> {
+    this.closeProjectLaunchDropdown();
+
+    if (this.isProjectLaunchRunning()) {
+      return;
+    }
+
+    const shortcutsToLaunch = this.shortcuts().filter((shortcut) => shortcut.includeInProjectLaunch);
+    if (shortcutsToLaunch.length === 0) {
+      this.setActionFeedback('error', 'No hay accesos marcados para abrir en este proyecto.');
+      return;
+    }
+
+    this.isProjectLaunchRunning.set(true);
+    let openedCount = 0;
+
+    try {
+      for (const shortcut of shortcutsToLaunch) {
+        const result = await this.shortcutsService.openShortcut(shortcut);
+        if (result.success) {
+          openedCount += 1;
+        }
+      }
+    } finally {
+      this.isProjectLaunchRunning.set(false);
+    }
+
+    if (openedCount === shortcutsToLaunch.length) {
+      this.setActionFeedback('success', `Proyecto abierto (${openedCount} accesos).`);
+      return;
+    }
+
+    const failedCount = shortcutsToLaunch.length - openedCount;
+    this.setActionFeedback(
+      'error',
+      `Se abrieron ${openedCount} accesos y fallaron ${failedCount}. Revisa las rutas configuradas.`
+    );
+  }
+
+  enterProjectLaunchConfigMode(): void {
+    this.closeProjectLaunchDropdown();
+    this.closeProjectDropdown();
+    this.cancelCopyShortcutPanel();
+    this.cancelBulkCopyPanel();
+
+    if (this.isMultiSelectMode()) {
+      this.isMultiSelectMode.set(false);
+      this.clearSelectedShortcuts();
+      this.resetBulkCopyState();
+    }
+
+    const initiallySelected = this.shortcuts()
+      .filter((shortcut) => shortcut.includeInProjectLaunch)
+      .map((shortcut) => shortcut.id);
+
+    this.projectLaunchDraftSelectedIds.set(initiallySelected);
+    this.projectLaunchConfigError.set('');
+    this.isProjectLaunchConfigMode.set(true);
+  }
+
+  cancelProjectLaunchConfigMode(): void {
+    this.isProjectLaunchConfigMode.set(false);
+    this.projectLaunchDraftSelectedIds.set([]);
+    this.projectLaunchConfigError.set('');
+    this.closeProjectLaunchDropdown();
+  }
+
+  saveProjectLaunchConfig(): void {
+    if (!this.isProjectLaunchConfigMode()) {
+      return;
+    }
+
+    const result = this.shortcutsService.updateActiveProjectLaunchSelection(this.projectLaunchDraftSelectedIds());
+    this.handleOperationResult(result, 'Configuración de apertura de proyecto guardada.');
+    if (result.success) {
+      this.cancelProjectLaunchConfigMode();
+    } else {
+      this.projectLaunchConfigError.set(result.error ?? 'No se pudo guardar la configuración.');
+    }
+  }
+
+  async openSelectedProjectLaunchDraft(): Promise<void> {
+    if (!this.isProjectLaunchConfigMode()) {
+      return;
+    }
+
+    if (this.isProjectLaunchRunning()) {
+      return;
+    }
+
+    const selectedIds = new Set(this.projectLaunchDraftSelectedIds());
+    const shortcutsToLaunch = this.orderedVisibleShortcuts().filter((shortcut) => selectedIds.has(shortcut.id));
+
+    if (shortcutsToLaunch.length === 0) {
+      this.projectLaunchConfigError.set('Selecciona al menos un acceso para abrir.');
+      this.setActionFeedback('error', 'Selecciona al menos un acceso para abrir.');
+      return;
+    }
+
+    this.projectLaunchConfigError.set('');
+    this.isProjectLaunchRunning.set(true);
+    let openedCount = 0;
+
+    try {
+      for (const shortcut of shortcutsToLaunch) {
+        const result = await this.shortcutsService.openShortcut(shortcut);
+        if (result.success) {
+          openedCount += 1;
+        }
+      }
+    } finally {
+      this.isProjectLaunchRunning.set(false);
+      this.cancelProjectLaunchConfigMode();
+    }
+
+    if (openedCount === shortcutsToLaunch.length) {
+      this.setActionFeedback('success', `Se abrieron ${openedCount} accesos seleccionados.`);
+      return;
+    }
+
+    const failedCount = shortcutsToLaunch.length - openedCount;
+    this.setActionFeedback(
+      'error',
+      `Se abrieron ${openedCount} accesos y fallaron ${failedCount}. Revisa las rutas configuradas.`
+    );
+  }
+
+  openBulkCopyPanel(): void {
+    if (!this.canOpenBulkCopyAction()) {
+      this.setActionFeedback('error', 'Selecciona al menos un acceso para copiar.');
+      return;
+    }
+
+    const destinations = this.copyDestinationProjects();
+    if (destinations.length === 0) {
+      this.setActionFeedback('error', 'No hay proyectos de destino disponibles.');
+      return;
+    }
+
+    this.cancelCopyShortcutPanel();
+    this.bulkCopyTargetProjectId.set(destinations[0].id);
+    this.bulkCopyError.set('');
+    this.isBulkCopyDropdownOpen.set(false);
+    this.isBulkCopyPanelOpen.set(true);
+  }
+
+  setBulkCopyTargetProjectId(projectId: string): void {
+    this.bulkCopyTargetProjectId.set(projectId);
+    if (projectId.trim()) {
+      this.bulkCopyError.set('');
+    }
+  }
+
+  toggleBulkCopyDropdown(): void {
+    if (!this.isBulkCopyPanelOpen()) {
+      return;
+    }
+
+    if (!this.isBulkCopyDropdownOpen()) {
+      this.closeProjectDropdown();
+    }
+    this.isBulkCopyDropdownOpen.update((value) => !value);
+  }
+
+  closeBulkCopyDropdown(): void {
+    this.isBulkCopyDropdownOpen.set(false);
+  }
+
+  selectBulkCopyDestination(projectId: string): void {
+    this.setBulkCopyTargetProjectId(projectId);
+    this.closeBulkCopyDropdown();
+  }
+
+  cancelBulkCopyPanel(): void {
+    this.isBulkCopyPanelOpen.set(false);
+    this.bulkCopyTargetProjectId.set('');
+    this.bulkCopyError.set('');
+    this.isBulkCopyDropdownOpen.set(false);
+  }
+
+  confirmBulkCopy(): void {
+    if (!this.canOpenBulkCopyAction()) {
+      this.bulkCopyError.set('Selecciona al menos un acceso para copiar.');
+      this.setActionFeedback('error', 'Selecciona al menos un acceso para copiar.');
+      return;
+    }
+
+    const destinationProjectId = this.bulkCopyTargetProjectId().trim();
+    if (!destinationProjectId) {
+      this.bulkCopyError.set('Selecciona un proyecto de destino.');
+      this.setActionFeedback('error', 'Selecciona un proyecto de destino.');
+      return;
+    }
+
+    const result = this.shortcutsService.copyShortcutsToProject(this.selectedShortcutIds(), destinationProjectId);
+    this.handleOperationResult(result, 'Accesos copiados a otro proyecto.');
+    if (result.success) {
+      this.clearSelectedShortcuts();
+      this.cancelBulkCopyPanel();
+    }
+  }
+
+  confirmCopyShortcut(): void {
+    const shortcut = this.shortcutToCopy();
+    if (!shortcut) {
+      this.copyShortcutError.set('Selecciona un acceso para copiar.');
+      this.setActionFeedback('error', 'Selecciona un acceso para copiar.');
+      return;
+    }
+
+    const destinationProjectId = this.copyTargetProjectId().trim();
+    if (!destinationProjectId) {
+      this.copyShortcutError.set('Selecciona un proyecto de destino.');
+      this.setActionFeedback('error', 'Selecciona un proyecto de destino.');
+      return;
+    }
+
+    const result = this.shortcutsService.copyShortcutToProject(shortcut.id, destinationProjectId);
+    this.handleOperationResult(result, 'Acceso copiado a otro proyecto.');
+    if (result.success) {
+      this.cancelCopyShortcutPanel();
+    }
+  }
+
   toggleFocusMode(): void {
     this.isFocusMode.update((value) => !value);
   }
@@ -305,6 +780,36 @@ export class DashboardPageComponent {
         event.preventDefault();
         this.closeShortcutModal();
       }
+      return;
+    }
+
+    if (event.key === 'Escape' && this.isProjectDropdownOpen()) {
+      event.preventDefault();
+      this.closeProjectDropdown();
+      return;
+    }
+
+    if (event.key === 'Escape' && this.isProjectLaunchDropdownOpen()) {
+      event.preventDefault();
+      this.closeProjectLaunchDropdown();
+      return;
+    }
+
+    if (event.key === 'Escape' && this.isBulkCopyDropdownOpen()) {
+      event.preventDefault();
+      this.closeBulkCopyDropdown();
+      return;
+    }
+
+    if (event.key === 'Escape' && this.isBulkCopyPanelOpen()) {
+      event.preventDefault();
+      this.cancelBulkCopyPanel();
+      return;
+    }
+
+    if (event.key === 'Escape' && this.isProjectLaunchConfigMode()) {
+      event.preventDefault();
+      this.cancelProjectLaunchConfigMode();
       return;
     }
 
@@ -350,11 +855,50 @@ export class DashboardPageComponent {
     }
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      if (this.isProjectDropdownOpen()) {
+        this.closeProjectDropdown();
+      }
+      if (this.isProjectLaunchDropdownOpen()) {
+        this.closeProjectLaunchDropdown();
+      }
+      if (this.isBulkCopyDropdownOpen()) {
+        this.closeBulkCopyDropdown();
+      }
+      return;
+    }
+
+    if (this.isProjectDropdownOpen() && !target.closest('[data-project-dropdown]')) {
+      this.closeProjectDropdown();
+    }
+
+    if (this.isProjectLaunchDropdownOpen() && !target.closest('[data-project-launch-dropdown]')) {
+      this.closeProjectLaunchDropdown();
+    }
+
+    if (this.isBulkCopyDropdownOpen() && !target.closest('[data-bulk-copy-dropdown]')) {
+      this.closeBulkCopyDropdown();
+    }
+  }
+
+  getBulkCopyDestinationName(): string {
+    const selectedId = this.bulkCopyTargetProjectId().trim();
+    if (!selectedId) {
+      return 'Seleccionar proyecto';
+    }
+
+    const selected = this.copyDestinationProjects().find((project) => project.id === selectedId);
+    return selected?.name ?? 'Seleccionar proyecto';
+  }
+
   private handleOperationResult(result: ShortcutOperationResult, successMessage?: string): void {
-    this.formError.set(result.success ? '' : result.error ?? 'No se pudo completar la operacion.');
+    this.formError.set(result.success ? '' : result.error ?? 'No se pudo completar la operación.');
     this.setActionFeedback(
       result.success ? 'success' : 'error',
-      result.success ? successMessage ?? 'Operacion completada.' : result.error ?? 'No se pudo completar la operacion.'
+      result.success ? successMessage ?? 'Operación completada.' : result.error ?? 'No se pudo completar la operación.'
     );
   }
 
@@ -413,7 +957,28 @@ export class DashboardPageComponent {
     const selectedShortcut =
       visibleShortcuts.find((shortcut) => shortcut.id === this.selectedShortcutId()) ?? visibleShortcuts[0];
     this.selectedShortcutId.set(selectedShortcut.id);
+
+    if (this.isMultiSelectMode()) {
+      this.toggleShortcutSelection(selectedShortcut);
+      return;
+    }
+
+    if (this.isProjectLaunchConfigMode()) {
+      this.toggleShortcutSelection(selectedShortcut);
+      return;
+    }
+
     this.launchShortcut(selectedShortcut);
+  }
+
+  private clearSelectedShortcuts(): void {
+    this.selectedShortcutIds.set([]);
+  }
+
+  private resetBulkCopyState(): void {
+    this.cancelBulkCopyPanel();
+    this.bulkCopyError.set('');
+    this.bulkCopyTargetProjectId.set('');
   }
 
   private setActionFeedback(type: 'success' | 'error', message: string): void {
@@ -494,3 +1059,4 @@ export class DashboardPageComponent {
     return /\.[a-zA-Z0-9]{1,12}$/.test(segment);
   }
 }
+

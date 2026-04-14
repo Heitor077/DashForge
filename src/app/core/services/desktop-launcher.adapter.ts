@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 
 import { DesktopLauncherApi } from '../models/desktop-launcher-api.model';
 import { LauncherAdapter, LauncherRequest, LauncherResult } from '../models/launcher.model';
@@ -18,7 +18,7 @@ export class DesktopLauncherAdapter implements LauncherAdapter {
   async open(request: LauncherRequest): Promise<LauncherResult> {
     const target = request.target?.trim();
     if (!target) {
-      return { success: false, message: 'El destino de apertura esta vacio.' };
+      return { success: false, message: 'El destino de apertura está vacío.' };
     }
 
     if (!this.desktopApi) {
@@ -26,7 +26,7 @@ export class DesktopLauncherAdapter implements LauncherAdapter {
     }
 
     if (!this.isActionSupported(request.type)) {
-      return { success: false, message: 'La accion solicitada no esta disponible en este runtime.' };
+      return { success: false, message: 'La accion solicitada no está disponible en este runtime.' };
     }
 
     if (request.type === 'url') {
@@ -68,3 +68,4 @@ export class DesktopLauncherAdapter implements LauncherAdapter {
     return false;
   }
 }
+

@@ -164,3 +164,36 @@
   background: color-mix(in srgb, var(--color-accent) 30%, transparent);
   color: inherit;
 }
+
+.shortcut-card--selection-mode .shortcut-card__launch {
+  cursor: pointer;
+}
+
+.shortcut-card--multi-selected {
+  border-color: color-mix(in srgb, var(--color-primary) 62%, var(--color-border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 36%, transparent),
+    var(--shadow-elevated);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+}
+
+.shortcut-card__selection-indicator {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-soft) 85%, transparent);
+  color: #fff;
+  font-size: 0.72rem;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+
+.shortcut-card__selection-indicator--active {
+  border-color: color-mix(in srgb, var(--color-primary) 62%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 72%, transparent);
+}

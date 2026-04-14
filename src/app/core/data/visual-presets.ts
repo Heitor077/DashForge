@@ -1,4 +1,4 @@
-import { VisualPreset } from '../models/visual-preset.model';
+﻿import { VisualPreset } from '../models/visual-preset.model';
 
 export const VISUAL_PRESETS: VisualPreset[] = [
   {
@@ -31,7 +31,7 @@ export const VISUAL_PRESETS: VisualPreset[] = [
   {
     id: 'nocturne-velvet',
     label: 'Velvet Night',
-    description: 'Ambiente profundo para sesiones largas de trabajo.',
+    description: 'Ambiente profundo para sesiónes largas de trabajo.',
     source: 'system',
     config: {
       themeId: 'nocturne',
@@ -207,3 +207,4 @@ export const VISUAL_PRESETS: VisualPreset[] = [
     }
   }
 ];
+

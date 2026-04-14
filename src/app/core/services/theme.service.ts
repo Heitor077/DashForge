@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common';
+﻿import { DOCUMENT } from '@angular/common';
 import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { DEFAULT_SETTINGS, DEFAULT_THEMES, DEFAULT_WALLPAPERS } from '../data/default-data';
@@ -258,7 +258,7 @@ export class ThemeService {
 
     const label = rawLabel === undefined ? currentPreset.label : this.sanitizePresetLabel(rawLabel);
     if (!label) {
-      return { success: false, error: 'Escribe un nombre valido para el preset.' };
+      return { success: false, error: 'Escribe un nombre válido para el preset.' };
     }
 
     const nextPreset = this.buildCustomPresetFromCurrentSettings({
@@ -365,7 +365,7 @@ export class ThemeService {
   }): ThemeImportValidationResult {
     const normalizedCustomPresets = this.normalizeImportedCustomPresets(payload.customPresets ?? []);
     if (normalizedCustomPresets.length !== (payload.customPresets ?? []).length) {
-      return { success: false, error: 'Hay presets personalizados invalidos en el archivo.' };
+      return { success: false, error: 'Hay presets personalizados inválidos en el archivo.' };
     }
 
     const presetIds = new Set<string>();
@@ -829,3 +829,4 @@ export class ThemeService {
     };
   }
 }
+

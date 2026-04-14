@@ -54,7 +54,7 @@
   },
 
     "nsis": {
-      "shortcutName": "Dashboard Interactivo",
+      "shortcutName": "DashForce",
       "createDesktopShortcut": "always",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
