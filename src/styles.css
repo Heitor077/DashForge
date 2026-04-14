@@ -1,0 +1,639 @@
+:root {
+  --color-bg: #07111f;
+  --color-surface: #101d31;
+  --color-surface-soft: #162740;
+  --color-border: #2b405f;
+  --color-text: #e8effa;
+  --color-text-muted: #a5b6d2;
+  --color-primary: #66b3ff;
+  --color-primary-contrast: #0b1f36;
+  --color-accent: #93cbff;
+  --color-highlight: #7cc2ff;
+  --color-interactive-border: #66b3ff;
+  --color-interactive-active: #93cbff;
+  --color-interactive-glow: #7cc2ff;
+  --btn-text: var(--color-text);
+  --btn-bg: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  --btn-border: var(--color-border);
+  --btn-hover-bg: color-mix(in srgb, var(--color-surface-soft) 72%, transparent);
+  --btn-primary-text: var(--color-primary-contrast);
+  --btn-primary-bg: var(--color-primary);
+  --btn-primary-border: var(--color-primary);
+  --btn-primary-hover-bg: color-mix(in srgb, var(--color-primary) 88%, var(--color-interactive-active));
+  --btn-outline-text: var(--color-interactive-border);
+  --btn-outline-bg: color-mix(in srgb, var(--color-surface-soft) 52%, transparent);
+  --btn-outline-border: color-mix(in srgb, var(--color-interactive-border) 44%, var(--color-border));
+  --btn-secondary-text: var(--btn-outline-text);
+  --btn-secondary-bg: var(--btn-outline-bg);
+  --btn-secondary-border: var(--btn-outline-border);
+  --btn-secondary-hover-bg: color-mix(in srgb, var(--btn-outline-bg) 78%, var(--color-surface));
+  --shadow-elevated: 0 18px 45px rgba(2, 6, 23, 0.35);
+
+  --app-wallpaper-image: radial-gradient(circle at 18% 16%, #264b90 0%, #0f1730 45%, #05070f 100%);
+  --app-wallpaper-position: center;
+  --app-wallpaper-size: cover;
+  --app-wallpaper-overlay-color: #03060f;
+  --app-wallpaper-overlay-opacity: 0.35;
+  --app-wallpaper-blur: 0px;
+  --app-surface-opacity: 90%;
+  --app-wallpaper-layer-opacity: 1;
+  --app-wallpaper-video-poster: none;
+  --shortcut-card-padding: 14px;
+  --shortcut-card-actions-padding: 10px 14px 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  position: relative;
+  transition: background-color 280ms ease, color 240ms ease;
+}
+
+html[data-ui-transition='active'] body,
+html[data-ui-transition='active'] body::before,
+html[data-ui-transition='active'] body::after {
+  transition-duration: 300ms;
+}
+
+html[data-ui-transition='active'] body::before {
+  opacity: 0.9;
+  transform: scale(1.03);
+}
+
+html[data-ui-transition='active'] body::after {
+  opacity: calc(var(--app-wallpaper-overlay-opacity) + 0.04);
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  inset: -18px;
+  z-index: -2;
+  background-image: var(--app-wallpaper-image);
+  background-position: var(--app-wallpaper-position);
+  background-size: var(--app-wallpaper-size);
+  background-repeat: no-repeat;
+  filter: blur(var(--app-wallpaper-blur));
+  transform: scale(1.05);
+  opacity: var(--app-wallpaper-layer-opacity);
+  transition: opacity 300ms ease, filter 280ms ease, transform 300ms ease;
+}
+
+body::after {
+  z-index: -1;
+  background: var(--app-wallpaper-overlay-color);
+  opacity: var(--app-wallpaper-overlay-opacity);
+  transition: opacity 300ms ease, background-color 280ms ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+a,
+input,
+select,
+article,
+section,
+main,
+nav,
+div {
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 220ms ease;
+}
+
+:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+.launcher-search {
+  display: flex;
+  margin-bottom: 14px;
+}
+
+.launcher-search__input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  height: 42px;
+  padding: 0 14px;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface-soft) 72%, transparent);
+  transition: border-color 180ms ease, box-shadow 200ms ease, background-color 180ms ease;
+}
+
+.launcher-search__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.launcher-search__input:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 62%, var(--color-border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+.theme-button,
+.theme-pill,
+.pill {
+  border: 1px solid var(--btn-border);
+  border-radius: 999px;
+  height: 32px;
+  color: var(--btn-text);
+  padding: 0 12px;
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 200ms ease;
+}
+
+.theme-button,
+.theme-pill {
+  font-size: 0.79rem;
+}
+
+.theme-button {
+  background: var(--btn-bg);
+}
+
+.theme-pill {
+  color: var(--btn-secondary-text);
+  background: var(--btn-secondary-bg);
+  border-color: var(--btn-secondary-border);
+}
+
+.theme-button--primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-border);
+}
+
+.dashboard__settings-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.pill {
+  background: var(--btn-bg);
+}
+
+.pill--danger {
+  border-color: color-mix(in srgb, #e06a6a 54%, var(--color-border));
+  color: color-mix(in srgb, #f29f9f 78%, var(--color-text) 22%);
+}
+
+.runtime-status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.runtime-state-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 2px 8px;
+  margin-inline-start: 2px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  background: color-mix(in srgb, var(--color-surface-soft) 72%, transparent);
+  color: var(--color-text-muted);
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.runtime-state-badge--success {
+  border-color: color-mix(in srgb, #2da15f 55%, var(--color-border));
+  background: color-mix(in srgb, #2da15f 20%, transparent);
+  color: color-mix(in srgb, #2da15f 82%, var(--color-text));
+}
+
+.theme-button:hover,
+.theme-pill:hover,
+.pill:hover,
+.theme-pill--active,
+.pill--active,
+.category-tab:hover,
+.category-tab--active {
+  border-color: var(--color-interactive-border);
+  transform: translateY(-1px);
+}
+
+.theme-button:hover,
+.theme-pill:hover,
+.pill:hover {
+  background: var(--btn-hover-bg);
+}
+
+.theme-pill:hover {
+  background: var(--btn-secondary-hover-bg);
+}
+
+.theme-button--primary:hover,
+.theme-button--primary:focus-visible,
+.theme-pill--active,
+.pill--active {
+  background: var(--btn-primary-hover-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-border);
+}
+
+.theme-button:active,
+.theme-pill:active,
+.pill:active,
+.category-tab:active {
+  transform: translateY(0);
+}
+
+.theme-button:disabled,
+.theme-pill:disabled,
+.pill:disabled,
+.category-tab:disabled {
+  opacity: 0.54;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pill--active,
+.preset-option--active,
+.wallpaper-option--active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-interactive-glow) 45%, transparent) inset;
+}
+
+.category-tab {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-soft) 76%, transparent);
+  color: var(--color-text-muted);
+  height: 30px;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.category-tab:hover,
+.category-tab--active {
+  border-color: color-mix(in srgb, var(--color-interactive-border) 52%, var(--color-border));
+  color: var(--color-text);
+}
+
+.preset-option,
+.wallpaper-option {
+  transition: transform 180ms ease, border-color 240ms ease, box-shadow 280ms ease, background-color 260ms ease;
+}
+
+.preset-option:hover,
+.wallpaper-option:hover {
+  transform: translateY(-1px);
+}
+
+.preset-option {
+  animation: preset-in 280ms ease-out;
+}
+
+.dashboard__main,
+.settings-card,
+.shortcut-card,
+.dashboard__favorites,
+.launcher-empty {
+  transition:
+    background-color 280ms ease,
+    border-color 260ms ease,
+    color 240ms ease,
+    box-shadow 300ms ease;
+}
+
+.preset-option::before,
+.wallpaper-option span,
+.shortcut-card__icon {
+  transition:
+    background-color 260ms ease,
+    opacity 260ms ease,
+    box-shadow 280ms ease,
+    transform 220ms ease;
+}
+
+.preset-option--selected {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-interactive-glow) 52%, transparent) inset, var(--shadow-elevated);
+}
+
+.preset-option--pulse {
+  animation: preset-pulse 420ms ease-out;
+}
+
+.preset-section__title {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.preset-empty {
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
+
+.delete-confirmation {
+  margin-top: 12px;
+  border: 1px solid color-mix(in srgb, #e06a6a 45%, transparent);
+  border-radius: 10px;
+  padding: 9px 10px;
+  display: grid;
+  gap: 8px;
+  background: color-mix(in srgb, #e06a6a 10%, transparent);
+}
+
+.delete-confirmation p {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.shortcut-modal__close {
+  border: 1px solid var(--btn-outline-border);
+  border-radius: 999px;
+  background: var(--btn-outline-bg);
+  color: var(--btn-outline-text);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+@keyframes preset-in {
+  from {
+    transform: translateY(6px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes preset-pulse {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-interactive-glow) 60%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+.shortcut-modal__close:hover {
+  border-color: var(--color-interactive-border);
+  background: color-mix(in srgb, var(--btn-outline-bg) 82%, var(--color-surface));
+}
+
+.shortcut-form input,
+.shortcut-form select {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 10px;
+  height: 38px;
+  padding: 0 12px;
+}
+
+.custom-wallpaper input,
+.shortcut-form input,
+.shortcut-form select {
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.switch input[type='checkbox'] {
+  accent-color: var(--color-interactive-border);
+}
+
+.range-control {
+  height: 20px;
+}
+
+.theme-button:focus-visible,
+.theme-pill:focus-visible,
+.pill:focus-visible,
+.category-tab:focus-visible,
+.preset-option:focus-visible,
+.wallpaper-option:focus-visible,
+.custom-wallpaper input:focus-visible,
+.range-control:focus-visible,
+.settings__back:focus-visible,
+.shortcut-modal__close:focus-visible,
+.shortcut-form input:focus-visible,
+.shortcut-form select:focus-visible {
+  border-color: color-mix(in srgb, var(--color-interactive-border) 68%, var(--color-border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-interactive-glow) 32%, transparent);
+}
+
+.launcher-empty {
+  margin-top: 14px;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 14px;
+  min-height: 130px;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-surface-soft) 40%, transparent);
+  padding: 20px;
+}
+
+.launcher-empty h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.launcher-empty p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
+}
+
+.dashboard__favorites {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-surface-soft) 42%, transparent);
+}
+
+.dashboard__favorites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dashboard__favorites-header h3 {
+  margin: 0;
+  font-size: 0.96rem;
+}
+
+.dashboard__favorites-header p {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
+
+.dashboard__favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.dashboard__grid-item--favorite {
+  animation-duration: 260ms;
+}
+
+@media (max-width: 680px) {
+  .dashboard__favorites-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard__favorites-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shortcut-card__favorite-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border-radius: 999px;
+  min-width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  color: #f7f1d4;
+  background: color-mix(in srgb, #f2ba49 30%, rgba(8, 10, 16, 0.72));
+}
+
+.shortcut-card__options-toggle,
+.shortcut-card__quick-edit {
+  position: absolute;
+  top: 8px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  color: var(--color-text-muted);
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: opacity 160ms ease, transform 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.shortcut-card__options-toggle {
+  right: 8px;
+  opacity: 0.28;
+  transform: translateY(0);
+  font-size: 1.02rem;
+}
+
+.shortcut-card__quick-edit {
+  right: 42px;
+  font-size: 0.93rem;
+}
+
+.shortcut-card:hover .shortcut-card__options-toggle,
+.shortcut-card:focus-within .shortcut-card__options-toggle,
+.shortcut-card__options-toggle:focus-visible,
+.shortcut-card:hover .shortcut-card__quick-edit,
+.shortcut-card:focus-within .shortcut-card__quick-edit,
+.shortcut-card__quick-edit:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.shortcut-card__options-toggle:hover,
+.shortcut-card__quick-edit:hover {
+  border-color: var(--color-interactive-border);
+  color: var(--color-text);
+}
+
+.shortcut-card__options-toggle:focus-visible,
+.shortcut-card__quick-edit:focus-visible,
+.shortcut-card__option:focus-visible {
+  border-color: color-mix(in srgb, var(--color-interactive-border) 64%, var(--color-border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-interactive-glow) 28%, transparent);
+  color: var(--color-text);
+}
+
+.shortcut-card__options-menu {
+  position: absolute;
+  top: 42px;
+  right: 8px;
+  z-index: 4;
+  min-width: 120px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  box-shadow: var(--shadow-elevated);
+  padding: 6px;
+  display: grid;
+  gap: 4px;
+}
+
+.shortcut-card__option {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.79rem;
+  text-align: left;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+.shortcut-card__option:hover {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-soft) 70%, transparent);
+}
+
+.shortcut-card__option--danger {
+  color: #e97c7c;
+}

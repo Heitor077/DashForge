@@ -1,0 +1,83 @@
+﻿<article class="shortcut-card" [class.shortcut-card--selected]="isKeyboardSelected" (contextmenu)="openContextMenu($event)">
+  <button type="button" class="shortcut-card__quick-edit" (click)="onQuickEdit($event)" aria-label="Editar acceso">
+    ✎
+  </button>
+
+  <button type="button" class="shortcut-card__options-toggle" (click)="toggleOptions($event)" aria-label="Opciones">
+    ⋯
+  </button>
+
+  @if (isOptionsOpen) {
+    <div class="shortcut-card__options-menu" (click)="$event.stopPropagation()">
+      <button type="button" class="shortcut-card__option" (click)="onToggleFavorite($event)">
+        {{ shortcut.isFavorite ? 'Quitar destacado' : 'Marcar destacado' }}
+      </button>
+      <button type="button" class="shortcut-card__option" (click)="onEdit($event)">Editar detalle</button>
+      <button type="button" class="shortcut-card__option shortcut-card__option--danger" (click)="onRemove($event)">
+        Borrar
+      </button>
+    </div>
+  }
+
+  <button type="button" class="shortcut-card__launch" (click)="onLaunch()">
+    @if (shortcut.isFavorite) {
+      <span class="shortcut-card__favorite-badge" aria-hidden="true">★</span>
+    }
+
+    <div class="shortcut-card__icon" [style.background-color]="shortcut.color || ''">
+      @if (iconView.mode === 'svg') {
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          @for (shape of iconView.definition.shapes; track $index) {
+            @switch (shape.kind) {
+              @case ('path') {
+                <path
+                  [attr.d]="shape.d"
+                  [attr.fill]="shape.fill ? 'currentColor' : 'none'"
+                  [attr.stroke]="shape.fill ? 'none' : 'currentColor'"
+                />
+              }
+              @case ('circle') {
+                <circle
+                  [attr.cx]="shape.cx"
+                  [attr.cy]="shape.cy"
+                  [attr.r]="shape.r"
+                  [attr.fill]="shape.fill ? 'currentColor' : 'none'"
+                  [attr.stroke]="shape.fill ? 'none' : 'currentColor'"
+                />
+              }
+              @case ('rect') {
+                <rect
+                  [attr.x]="shape.x"
+                  [attr.y]="shape.y"
+                  [attr.width]="shape.width"
+                  [attr.height]="shape.height"
+                  [attr.rx]="shape.rx ?? 0"
+                  [attr.fill]="shape.fill ? 'currentColor' : 'none'"
+                  [attr.stroke]="shape.fill ? 'none' : 'currentColor'"
+                />
+              }
+            }
+          }
+        </svg>
+      } @else {
+        {{ iconView.text }}
+      }
+    </div>
+
+    <div class="shortcut-card__body">
+      <p class="shortcut-card__title">
+        @for (part of titleHighlight; track $index) {
+          <span [class.shortcut-card__match]="part.match">{{ part.text }}</span>
+        }
+      </p>
+      @if (showLabels) {
+        <p class="shortcut-card__meta">{{ categoryLabel || 'General' }} · {{ shortcut.type }}</p>
+        <p class="shortcut-card__description">
+          @for (part of valueHighlight; track $index) {
+            <span [class.shortcut-card__match]="part.match">{{ part.text }}</span>
+          }
+        </p>
+      }
+    </div>
+  </button>
+</article>

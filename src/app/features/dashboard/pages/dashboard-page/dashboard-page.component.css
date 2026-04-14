@@ -1,0 +1,215 @@
+.dashboard {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  color: var(--color-text);
+}
+
+.dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dashboard__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.69rem;
+  color: var(--color-text-muted);
+}
+
+h1 {
+  margin: 2px 0 0;
+  font-size: clamp(1.34rem, 2vw, 1.76rem);
+  line-height: 1.12;
+}
+
+.dashboard__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.dashboard__main {
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--color-surface) var(--app-surface-opacity), transparent);
+  box-shadow: var(--shadow-elevated);
+  padding: 18px 18px 20px;
+}
+
+.dashboard__intro h2 {
+  margin: 0;
+  font-size: 1.04rem;
+}
+
+.dashboard__intro p {
+  margin: 5px 0 0;
+  font-size: 0.83rem;
+  color: var(--color-text-muted);
+}
+
+.dashboard__feedback {
+  margin-top: 10px;
+  border: 1px solid color-mix(in srgb, #3aa978 44%, transparent);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  color: color-mix(in srgb, #3aa978 85%, var(--color-text));
+  background: color-mix(in srgb, #3aa978 12%, transparent);
+}
+
+.dashboard__feedback--error {
+  border-color: color-mix(in srgb, #e06a6a 52%, transparent);
+  color: color-mix(in srgb, #e06a6a 90%, var(--color-text));
+  background: color-mix(in srgb, #e06a6a 11%, transparent);
+}
+
+.dashboard__grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: var(--dashboard-columns-template, repeat(3, minmax(250px, 1fr)));
+  gap: 16px;
+}
+
+.dashboard__grid--compact {
+  gap: 10px;
+}
+
+.dashboard__grid-item {
+  animation: grid-item-enter 340ms ease-out forwards;
+}
+
+.dashboard__grid-item.cdk-drag {
+  cursor: grab;
+}
+
+.dashboard__grid-item.cdk-drag-dragging {
+  cursor: grabbing;
+}
+
+.dashboard__grid-item.cdk-drag-preview {
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+}
+
+.dashboard__grid-item.cdk-drag-placeholder {
+  opacity: 0.18;
+}
+
+.dashboard__grid.cdk-drop-list-dragging .dashboard__grid-item:not(.cdk-drag-placeholder) {
+  transition: transform 200ms ease;
+}
+
+.category-tabs {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard--focus .dashboard__header {
+  margin-bottom: 8px;
+}
+
+.dashboard--focus .dashboard__intro {
+  display: none;
+}
+
+.shortcut-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 10, 16, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+}
+
+.shortcut-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 26px));
+  max-height: calc(100vh - 26px);
+  overflow: auto;
+  z-index: 41;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  box-shadow: var(--shadow-elevated);
+  padding: 18px;
+}
+
+.shortcut-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@keyframes grid-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.shortcut-form {
+  display: grid;
+  gap: 12px;
+}
+
+.shortcut-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
+}
+
+.shortcut-form__hint {
+  font-size: 0.76rem;
+  color: color-mix(in srgb, var(--color-text-muted) 88%, transparent);
+}
+
+.shortcut-form__error {
+  margin: 0;
+  color: #e36f6f;
+  font-size: 0.84rem;
+}
+
+.shortcut-form__actions {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 680px) {
+  .dashboard {
+    padding-top: 24px;
+  }
+
+  .dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .dashboard__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+}

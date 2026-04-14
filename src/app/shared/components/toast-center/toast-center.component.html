@@ -1,0 +1,8 @@
+<section class="toast-center" aria-live="polite" aria-atomic="true">
+  @for (item of notifications(); track item.id) {
+    <article class="toast" [class.toast--error]="item.type === 'error'" [class.toast--info]="item.type === 'info'">
+      <p>{{ item.message }}</p>
+      <button type="button" class="toast__close" (click)="notificationService.dismiss(item.id)">Cerrar</button>
+    </article>
+  }
+</section>

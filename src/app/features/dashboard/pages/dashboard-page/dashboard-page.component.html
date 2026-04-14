@@ -1,0 +1,193 @@
+<section class="dashboard" [class.dashboard--focus]="isFocusMode()">
+  <header class="dashboard__header">
+    <div>
+      <p class="dashboard__eyebrow">Launcher</p>
+      <h1>Accesos</h1>
+    </div>
+
+    <div class="dashboard__actions">
+      <button type="button" class="theme-button" (click)="toggleFocusMode()">
+        {{ isFocusMode() ? 'Salir enfoque' : 'Modo enfoque' }}
+      </button>
+      <button type="button" class="theme-button" (click)="toggleFullscreenMode()">
+        {{ isFullscreen() ? 'Salir pantalla completa' : 'Pantalla completa' }}
+      </button>
+      <button type="button" class="theme-button" (click)="themeService.toggleTheme()">
+        Cambiar tema
+      </button>
+      <button type="button" class="theme-button theme-button--primary" (click)="openCreateShortcutModal()">
+        Nuevo acceso
+      </button>
+      <a routerLink="/settings" class="theme-button dashboard__settings-link">Configuracion</a>
+    </div>
+  </header>
+
+  <main class="dashboard__main">
+    <div class="launcher-search">
+      <input
+        #launcherSearchInput
+        type="search"
+        class="launcher-search__input"
+        [value]="searchQuery()"
+        placeholder="Buscar acceso, tipo, categoria o URL... (Ctrl/Cmd + K)"
+        (input)="setSearchQuery($any($event.target).value)"
+      />
+    </div>
+
+    <div class="dashboard__intro">
+      <h2>Launcher</h2>
+      <p>Pulsa cualquier tarjeta para abrir. Edicion y borrado en opciones al pasar el cursor.</p>
+    </div>
+
+    @if (actionFeedback().type !== 'idle') {
+      <p
+        class="dashboard__feedback"
+        [class.dashboard__feedback--error]="actionFeedback().type === 'error'"
+        aria-live="polite"
+      >
+        {{ actionFeedback().message }}
+      </p>
+    }
+
+    <nav class="category-tabs" aria-label="Filtros de categorias">
+      @for (category of categoryFilters(); track category.id) {
+        <button
+          type="button"
+          class="category-tab"
+          [class.category-tab--active]="category.id === selectedCategoryId()"
+          (click)="selectCategoryFilter(category.id)"
+        >
+          {{ category.name }}
+        </button>
+      }
+    </nav>
+
+    @if (favoriteShortcuts().length > 0) {
+      <section class="dashboard__favorites">
+        <header class="dashboard__favorites-header">
+          <h3>Favoritos</h3>
+          <p>Accesos destacados para uso rapido</p>
+        </header>
+
+        <div class="dashboard__favorites-grid">
+          @for (shortcut of favoriteShortcuts(); track shortcut.id) {
+            <div class="dashboard__grid-item dashboard__grid-item--favorite">
+              <app-shortcut-card
+                [shortcut]="shortcut"
+                [categoryLabel]="categoryLabels()[shortcut.categoryId || ''] || 'General'"
+                [showLabels]="showShortcutLabels()"
+                [searchTerm]="searchQuery()"
+                [isKeyboardSelected]="shortcut.id === selectedShortcutId()"
+                (launch)="launchShortcut($event)"
+                (edit)="openEditShortcutModal($event)"
+                (remove)="deleteShortcut($event)"
+                (toggleFavorite)="toggleFavorite($event)"
+              />
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <div
+      class="dashboard__grid"
+      [class.dashboard__grid--compact]="compactMode()"
+      [style.--dashboard-columns-template]="dashboardColumnsTemplate()"
+      cdkDropList
+      [cdkDropListData]="regularShortcuts()"
+      (cdkDropListDropped)="onShortcutDrop($event)"
+    >
+      @for (shortcut of regularShortcuts(); track shortcut.id) {
+        <div class="dashboard__grid-item" cdkDrag>
+          <app-shortcut-card
+            [shortcut]="shortcut"
+            [categoryLabel]="categoryLabels()[shortcut.categoryId || ''] || 'General'"
+            [showLabels]="showShortcutLabels()"
+            [searchTerm]="searchQuery()"
+            [isKeyboardSelected]="shortcut.id === selectedShortcutId()"
+            (launch)="launchShortcut($event)"
+            (edit)="openEditShortcutModal($event)"
+            (remove)="deleteShortcut($event)"
+            (toggleFavorite)="toggleFavorite($event)"
+          />
+        </div>
+      }
+    </div>
+
+    @if (favoriteShortcuts().length === 0 && regularShortcuts().length === 0) {
+      <section class="launcher-empty">
+        <h3>{{ searchQuery().trim() ? 'Sin resultados' : 'Sin accesos todavia' }}</h3>
+        <p>
+          {{
+            searchQuery().trim()
+              ? 'No hay accesos que coincidan con "' + searchQuery() + '". Ajusta la busqueda o el filtro de categoria.'
+              : 'Crea tu primer acceso para empezar a usar el launcher.'
+          }}
+        </p>
+      </section>
+    }
+  </main>
+
+  @if (isShortcutModalOpen()) {
+    <div class="shortcut-modal__backdrop" (click)="closeShortcutModal()"></div>
+    <section class="shortcut-modal" role="dialog" aria-modal="true" aria-label="Editar acceso directo">
+      <header class="shortcut-modal__header">
+        <h3>{{ isEditMode() ? 'Editar acceso' : 'Nuevo acceso' }}</h3>
+        <button type="button" class="shortcut-modal__close" (click)="closeShortcutModal()">Cerrar</button>
+      </header>
+
+      <form class="shortcut-form" [formGroup]="shortcutForm" (ngSubmit)="saveShortcut()">
+        <label>
+          <span>Nombre *</span>
+          <input type="text" formControlName="name" placeholder="Ej: Jira" />
+        </label>
+
+        <label>
+          <span>Tipo *</span>
+          <select formControlName="type">
+            @for (type of shortcutTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Valor *</span>
+          <input type="text" formControlName="value" [placeholder]="valueFieldMeta().placeholder" />
+          <small class="shortcut-form__hint">{{ valueFieldMeta().hint }}</small>
+        </label>
+
+        <label>
+          <span>Icono</span>
+          <input type="text" formControlName="icon" placeholder="Ej: github, youtube, folder" />
+        </label>
+
+        <label>
+          <span>Color</span>
+          <input type="text" formControlName="color" placeholder="Ej: #39a9d7" />
+        </label>
+
+        <label>
+          <span>Categoria</span>
+          <select formControlName="categoryId">
+            <option value="">General</option>
+            @for (category of categories(); track category.id) {
+              <option [value]="category.id">{{ category.name }}</option>
+            }
+          </select>
+        </label>
+
+        @if (formError()) {
+          <p class="shortcut-form__error">{{ formError() }}</p>
+        }
+
+        <div class="shortcut-form__actions">
+          <button type="button" class="theme-pill" (click)="closeShortcutModal()">Cancelar</button>
+          <button type="submit" class="theme-pill theme-pill--active">
+            {{ isEditMode() ? 'Guardar cambios' : 'Crear acceso' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+</section>

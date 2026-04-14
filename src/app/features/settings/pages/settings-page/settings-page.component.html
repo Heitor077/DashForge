@@ -1,0 +1,389 @@
+<section class="settings">
+  <header class="settings__header">
+    <div>
+      <p class="settings__eyebrow">Dashboard</p>
+      <h1>Configuracion</h1>
+      <p class="settings__subtitle">Personaliza tu launcher visual y comportamiento</p>
+    </div>
+    <a routerLink="/" class="settings__back">Volver al dashboard</a>
+  </header>
+
+  <div class="settings__grid">
+    <article class="settings-card">
+      <h2>Apariencia</h2>
+      <p>Define estilo visual, acento y fondo del launcher.</p>
+
+      <div class="settings-group">
+        <h3 class="settings-group__title">Presets visuales</h3>
+        <p>Estilos completos curados y tu biblioteca personal. Aplican tema, fondo y ajustes visuales.</p>
+
+        <div class="preset-section">
+          <p class="preset-section__title">Sistema</p>
+          <div class="preset-grid">
+            @for (preset of systemPresets(); track preset.id) {
+              <button
+                type="button"
+                class="preset-option"
+                [class.preset-option--active]="preset.id === activePresetId()"
+                [class.preset-option--pulse]="preset.id === highlightedPresetId()"
+                [style.background-image]="getPresetPreview(preset)"
+                (click)="applyPreset(preset.id)"
+              >
+                <span class="preset-option__label">{{ preset.label }}</span>
+                @if (preset.description) {
+                  <span class="preset-option__description">{{ preset.description }}</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="preset-section">
+          <p class="preset-section__title">Personalizados</p>
+          @if (userPresets().length) {
+            <div class="preset-grid">
+              @for (preset of userPresets(); track preset.id) {
+                <button
+                  type="button"
+                  class="preset-option preset-option--user"
+                  [class.preset-option--active]="preset.id === activePresetId()"
+                  [class.preset-option--selected]="preset.id === selectedUserPresetId()"
+                  [class.preset-option--pulse]="preset.id === highlightedPresetId()"
+                  [style.background-image]="getPresetPreview(preset)"
+                  (click)="applyPreset(preset.id); selectUserPreset(preset.id)"
+                >
+                  <span class="preset-option__label">{{ preset.label }}</span>
+                  <span class="preset-option__badge">Usuario</span>
+                  @if (preset.updatedAt) {
+                    <span class="preset-option__description">Actualizado {{ preset.updatedAt | date: 'short' }}</span>
+                  }
+                </button>
+              }
+            </div>
+          } @else {
+            <p class="preset-empty">Todavia no hay presets personalizados. Guarda tu configuracion actual para crear el primero.</p>
+          }
+        </div>
+
+        <div class="settings-row">
+          <span>Nombre del preset</span>
+          <div class="custom-wallpaper">
+            <input #customPresetNameInput type="text" placeholder="Ejemplo: Focus Noche" />
+            <button type="button" class="pill" (click)="saveCurrentAsPreset(customPresetNameInput.value)">Guardar nuevo</button>
+          </div>
+        </div>
+
+        <div class="settings-row settings-row--inline">
+          <span>Acciones sobre preset seleccionado</span>
+          <div class="import-actions">
+            <button type="button" class="pill" [disabled]="!selectedUserPresetId()" (click)="updateSelectedPreset(customPresetNameInput.value)">
+              Actualizar
+            </button>
+            <button type="button" class="pill pill--danger" [disabled]="!selectedUserPresetId()" (click)="requestDeleteSelectedPreset()">
+              Eliminar
+            </button>
+          </div>
+        </div>
+
+        @if (isConfirmDeleteOpen()) {
+          <div class="delete-confirmation">
+            <p>¿Eliminar este preset personalizado?</p>
+            <div class="import-actions">
+              <button type="button" class="pill" (click)="cancelDeleteSelectedPreset()">Cancelar</button>
+              <button type="button" class="pill pill--danger" (click)="confirmDeleteSelectedPreset()">Confirmar</button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="settings-row">
+        <span>Tema</span>
+        <div class="pill-group">
+          @for (theme of themes(); track theme.id) {
+            <button
+              type="button"
+              class="pill"
+              [class.pill--active]="theme.id === settings().themeId"
+              (click)="setTheme(theme.id)"
+            >
+              {{ theme.name }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <span>Variante</span>
+        <div class="variant-selector">
+          <div class="pill-group">
+            @for (variant of visibleVariants(); track variant.id) {
+              <button
+                type="button"
+                class="pill"
+                [class.pill--active]="variant.id === settings().themeVariantId"
+                (click)="setThemeVariant(variant.id)"
+              >
+                {{ variant.name }}
+              </button>
+            }
+
+            @if (hasHiddenVariants()) {
+              <button
+                type="button"
+                class="pill pill--more"
+                [class.pill--active]="areExtraVariantsOpen()"
+                [attr.aria-expanded]="areExtraVariantsOpen()"
+                aria-label="Mostrar variantes adicionales"
+                (click)="toggleExtraVariants()"
+              >
+                +
+              </button>
+            }
+          </div>
+
+          @if (areExtraVariantsOpen() && hasHiddenVariants()) {
+            <div class="variant-overflow-panel">
+              @for (variant of hiddenVariants(); track variant.id) {
+                <button
+                  type="button"
+                  class="pill"
+                  [class.pill--active]="variant.id === settings().themeVariantId"
+                  (click)="setThemeVariant(variant.id, { closeExtraPanel: true })"
+                >
+                  {{ variant.name }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <span>Fondo</span>
+        <div class="wallpaper-grid">
+          @for (wallpaper of wallpapers(); track wallpaper.id) {
+            <button
+              type="button"
+              class="wallpaper-option"
+              [class.wallpaper-option--active]="wallpaper.id === settings().wallpaperId"
+              [style.background-image]="wallpaper.value"
+              (click)="themeService.setWallpaper(wallpaper.id)"
+            >
+              <span>{{ wallpaper.label }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <span>Blur de fondo ({{ wallpaperBlurPx() }}px)</span>
+        <input
+          type="range"
+          min="0"
+          max="8"
+          step="1"
+          class="range-control"
+          [value]="wallpaperBlurPx()"
+          (input)="setWallpaperBlur(+$any($event.target).value)"
+        />
+      </div>
+
+      <div class="settings-row">
+        <span>Fondo personalizado</span>
+        <div class="custom-wallpaper-panel">
+          <input
+            #customWallpaperFileInput
+            type="file"
+            accept="image/*"
+            class="file-input"
+            (change)="onCustomWallpaperFileSelected($event)"
+          />
+
+          @if (customWallpaperPreview()) {
+            <div class="custom-wallpaper-preview" [style.background-image]="customWallpaperPreview()"></div>
+            <p class="custom-wallpaper-caption">Personalizado activo</p>
+          } @else {
+            <div class="custom-wallpaper-empty">Sin imagen personalizada</div>
+          }
+
+          <div class="import-actions">
+            <button type="button" class="pill" (click)="customWallpaperFileInput.click()">
+              {{ customWallpaperPreview() ? 'Reemplazar imagen' : 'Subir imagen' }}
+            </button>
+            <button type="button" class="pill pill--danger" [disabled]="!customWallpaperPreview()" (click)="clearCustomWallpaper()">
+              Eliminar
+            </button>
+          </div>
+
+          <div class="custom-wallpaper">
+            <input
+              #customWallpaperInput
+              type="text"
+              [value]="customWallpaperSource()"
+              placeholder='https://... o linear-gradient(...)'
+            />
+            <button type="button" class="pill" (click)="applyCustomWallpaper(customWallpaperInput.value)">Aplicar valor</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="settings-card">
+      <h2>Layout</h2>
+      <p>Ajusta distribucion y densidad espacial del tablero.</p>
+
+      <div class="settings-row">
+        <span>Columnas del grid</span>
+        <div class="layout-options-grid">
+          @for (option of layoutColumnOptions; track option.id) {
+            <button
+              type="button"
+              class="layout-option"
+              [class.layout-option--active]="option.isAuto ? isAutoLayoutColumns() : option.value === layoutColumns()"
+              [class.layout-option--auto]="option.isAuto"
+              [attr.aria-label]="option.isAuto ? 'Layout automatico recomendado' : 'Layout de ' + option.label + ' columnas'"
+              (click)="option.isAuto ? setAutoColumns() : setColumns(option.value)"
+            >
+              <span class="layout-option__preview" [style.--layout-preview-columns]="option.visualColumns">
+                @for (_ of [1, 2, 3, 4]; track $index) {
+                  <span class="layout-option__cell"></span>
+                }
+              </span>
+              <span class="layout-option__meta">
+                <strong>{{ option.label }}</strong>
+                <small>{{ option.isAuto ? 'Recomendado' : option.label + ' columnas' }}</small>
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="settings-row settings-row--inline">
+        <span>Modo compacto</span>
+        <label class="switch">
+          <input type="checkbox" [checked]="isCompactMode()" (change)="setCompactMode($any($event.target).checked)" />
+          <span>Activar</span>
+        </label>
+      </div>
+    </article>
+
+    <article class="settings-card">
+      <h2>Comportamiento</h2>
+      <p>Controla interaccion y preferencias de uso diario.</p>
+
+      <div class="settings-row">
+        <span>Densidad visual</span>
+        <p class="settings-helper">Define cuanta informacion ves por pantalla y cuanto aire visual mantiene la interfaz.</p>
+        <div class="behavior-options-grid behavior-options-grid--two">
+          @for (density of densityOptionMeta; track density.id) {
+            <button
+              type="button"
+              class="behavior-option"
+              [class.behavior-option--active]="density.id === visualDensity()"
+              (click)="themeService.setVisualDensity(density.id)"
+            >
+              <strong>{{ density.title }}</strong>
+              <small>{{ density.description }}</small>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="settings-row settings-row--inline">
+        <div>
+          <span>Mostrar labels</span>
+          <p class="settings-helper">Muestra u oculta los textos de nombre, tipo y ruta dentro de cada acceso.</p>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            [checked]="showShortcutLabels()"
+            (change)="themeService.setShowShortcutLabels($any($event.target).checked)"
+          />
+          <span>Visible</span>
+        </label>
+      </div>
+
+      <div class="settings-row">
+        <span>Comportamiento de apertura</span>
+        <p class="settings-helper">Elige como se abren los accesos cuando haces click en una tarjeta.</p>
+        <div class="behavior-options-grid">
+          @for (mode of openBehaviorOptionMeta; track mode.id) {
+            <button
+              type="button"
+              class="behavior-option"
+              [class.behavior-option--active]="mode.id === openBehavior()"
+              (click)="themeService.setOpenBehavior(mode.id)"
+            >
+              <strong>{{ mode.title }}</strong>
+              <small>{{ mode.description }}</small>
+            </button>
+          }
+        </div>
+      </div>
+    </article>
+    <article class="settings-card">
+      <h2>Sistema</h2>
+      <p>Respaldo, migracion y estado del runtime actual.</p>
+
+      <div class="settings-row">
+        <span>Exportar configuracion</span>
+        <p class="settings-helper">Guarda una copia completa de tu configuracion actual para restaurarla cuando quieras.</p>
+        <div class="import-actions">
+          <button type="button" class="pill" (click)="exportConfiguration()">Descargar backup JSON</button>
+          <button type="button" class="pill" (click)="downloadImportExample()">Descargar ejemplo</button>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <span>Importar configuracion</span>
+        <p class="settings-helper">Carga un JSON exportado previamente desde DashForge para recuperar accesos, temas y preferencias.</p>
+        <div class="import-actions">
+          <input
+            #importConfigInput
+            type="file"
+            accept="application/json,.json"
+            class="file-input"
+            (change)="importConfigurationFromFile($event)"
+          />
+          <button type="button" class="pill" [disabled]="isImporting()" (click)="importConfigInput.click()">
+            {{ isImporting() ? 'Importando...' : 'Seleccionar JSON' }}
+          </button>
+          <button type="button" class="pill" (click)="toggleImportFormatHelp()">
+            {{ isImportFormatHelpOpen() ? 'Ocultar formato' : 'Ver formato esperado' }}
+          </button>
+        </div>
+
+        @if (isImportFormatHelpOpen()) {
+          <p class="settings-helper">
+            Formato minimo esperado:
+            <code>version=1, app=dashboar-interactivo, data.shortcuts, data.categories, data.settings</code>
+          </p>
+        }
+      </div>
+
+      <div class="settings-row">
+        <span>Runtime actual</span>
+        <p class="settings-helper">Estado del entorno y de las capacidades disponibles en esta sesion.</p>
+        <div class="behavior-options-grid">
+          @for (item of runtimeCapabilitiesSummary(); track item.id) {
+            <article class="behavior-option">
+              <strong>{{ item.label }}</strong>
+              <small class="runtime-status-line">
+                <span>{{ item.value }}</span>
+                <span
+                  class="runtime-state-badge"
+                  [class.runtime-state-badge--success]="item.state === 'OK' || item.state === 'Activo'"
+                >
+                  {{ item.state }}
+                </span>
+              </small>
+            </article>
+          }
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+
