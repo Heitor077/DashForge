@@ -6,7 +6,7 @@ const { fileURLToPath } = require('node:url');
 const isDev = !app.isPackaged;
 const APP_TITLE = 'DashForge';
 const DEV_URL = process.env.ELECTRON_START_URL || 'http://localhost:4200';
-const APP_ID = 'com.dashforge';
+const APP_ID = 'com.heitor.dashforge';
 const ICON_PATH = app.isPackaged
   ? path.join(process.resourcesPath, 'assets', 'icon.ico')
   : path.join(__dirname, 'assets', 'icon.ico');

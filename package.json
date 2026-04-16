@@ -10,8 +10,8 @@
     "start:web": "ng serve",
     "start:desktop": "npm run electron:dev",
     "electron:dev": "concurrently -k \"npm run start:web\" \"wait-on tcp:4200 && cross-env ELECTRON_START_URL=http://localhost:4200 electron .\"",
-    "build": "ng build --configuration production",
-    "build:web": "ng build --configuration production",
+    "build": "ng build --configuration production --base-href ./",
+    "build:web": "ng build --configuration production --base-href ./",
     "build:desktop": "npm run build:desktop:installer",
     "build:desktop:dir": "npm run build:web && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --dir",
     "build:desktop:installer": "npm run build:web && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
@@ -34,15 +34,15 @@
     "electron/**/*",
     "package.json"
   ],
-  "extraResources": [
+    "extraResources": [
     {
-      "from": "electron/assets/icon.ico",
-      "to": "assets/icon.ico"
+      "from": "electron/assets",
+      "to": "assets"
     }
   ],
+
   "win": {
     "icon": "electron/assets/icon.ico",
-    "signAndEditExecutable": false,
     "target": [
       {
         "target": "nsis",
@@ -54,11 +54,14 @@
   },
 
     "nsis": {
-      "shortcutName": "DashForce",
-      "createDesktopShortcut": "always",
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+  "shortcutName": "DashForge",
+  "createDesktopShortcut": "always",
+  "createStartMenuShortcut": true,
+  "oneClick": false,
+  "allowToChangeInstallationDirectory": true,
+  "perMachine": true,
+  "deleteAppDataOnUninstall": true
+}
   },
   "private": true,
   "dependencies": {
