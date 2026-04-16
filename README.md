@@ -39,7 +39,7 @@ DashForge nace como una herramienta personal para optimizar flujos de trabajo, e
 
 ## 📸 Preview
 
-![Dashboard principal](docs/screenshots/dashboard.png)
+![Dashboard principal](docs/screenshots/dashboard-main.png)
 ![Themes](docs/screenshots/themes.png)
 ![Settings](docs/screenshots/settings.png)
 
