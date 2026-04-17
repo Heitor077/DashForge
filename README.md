@@ -4,7 +4,7 @@
   <img src="docs/screenshots/dashboard-main.png" alt="DashForge Preview" width="100%">
 </p>
 
-> DashForge es un launcher de escritorio que abre tu entorno de trabajo completo con un solo clic.
+> DashForge es un launcher de escritorio que abre tu entorno de trabajo completo con un solo click.
 
 ![Angular](https://img.shields.io/badge/Angular-19-red)
 ![Electron](https://img.shields.io/badge/Electron-desktop-blue)
@@ -100,7 +100,7 @@ Un desarrollador puede configurar un proyecto con:
 * Repositorio Git
 * Herramientas externas
 
-Con un solo clic, DashForge abre todo el entorno de trabajo de forma controlada y segura.
+Con un solo click, DashForge abre todo el entorno de trabajo de forma controlada y segura.
 
 ---
 
