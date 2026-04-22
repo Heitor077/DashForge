@@ -60,16 +60,51 @@ DashForge nace como una herramienta personal para optimizar flujos de trabajo, e
 
 ---
 
+## 🧩 Sistema de iconos categorizados (NEW)
+
+Se ha implementado un sistema de iconos organizado por categorías para mejorar la experiencia visual y la escalabilidad del proyecto.
+
+### 📂 Categorías actuales
+
+* 🌐 Web
+  Google, YouTube, ChatGPT, Gemini…
+
+* 🛒 Compras
+  Amazon, Temu
+
+* 🎮 Gaming
+  Nintendo, Nintendo Switch, Game Boy, Nintendo 64
+
+* 🎬 Media
+  Spotify, Netflix…
+
+* 🛠️ Utilidades
+  Dropbox y herramientas varias
+
+---
+
+### 🧠 Ventajas del sistema
+
+* Escalable → fácil añadir nuevos iconos
+* Mejora la experiencia de usuario
+* Organización visual clara
+* Preparado para futuras mejoras (override, packs personalizados)
+
+---
+
 ## ⚙️ Comportamiento inteligente
 
 DashForge implementa un sistema de apertura progresiva adaptativa:
 
 * Los accesos se abren de forma secuencial (no en paralelo)
+
 * Se evalúa la memoria disponible del sistema en tiempo real
+
 * Si hay pocos recursos, activa un modo seguro:
 
   * Reduce velocidad de apertura
   * Evita picos de CPU y RAM
+
 * Feedback visual continuo del progreso
 
 💡 Este sistema evita saturar el equipo al abrir múltiples aplicaciones, algo que la mayoría de launchers no resuelve.
@@ -114,15 +149,17 @@ Arquitectura Angular standalone con enfoque feature-based:
 * `electron/` → capa desktop (main + preload)
 
 📄 Más detalles:
-👉 [docs/architecture.md](docs/architecture.md)
+👉 docs/architecture.md
 
 ---
 
 ## 📚 Documentación
 
-- Arquitectura → [docs/architecture.md](docs/architecture.md)
-- Contexto del proyecto → [docs/project-context.md](docs/project-context.md)
-- Guías técnicas → [docs/agents/](docs/agents)
+* Arquitectura → docs/architecture.md
+* Contexto del proyecto → docs/project-context.md
+* Guías técnicas → docs/agents/
+
+---
 
 ## 🛠 Tecnologías
 
@@ -204,6 +241,8 @@ DashForge/
 
 * [ ] Import/export de proyectos
 * [ ] Onboarding inicial
+* [ ] Sistema de override de iconos
+* [ ] Packs de iconos personalizados
 * [ ] Mejora UX drag & drop
 * [ ] Tests E2E
 * [ ] Refinado branding final
@@ -232,7 +271,7 @@ Actualmente enfocado en:
 * rendimiento
 * experiencia de usuario desktop
 
-Versión actual: **v1 (MVP funcional)**
+Versión actual: **v0.1.1**
 
 ---
 
