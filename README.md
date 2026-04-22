@@ -249,6 +249,11 @@ DashForge/
 
 ---
 
+## 📥 Descargar
+
+👉 Última versión:
+https://github.com/Heitor077/DashForge/releases/tag/v0.1.1
+
 ## 💡 En qué se diferencia
 
 DashForge no es un listado plano de enlaces:
